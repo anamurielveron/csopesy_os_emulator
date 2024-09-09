@@ -1,0 +1,61 @@
+Folder PATH listing for volume Windows-SSD
+Volume serial number is 3E5B-40A3
+C:.
+|   directory_structure.txt
+|   WindowPain.sln
+|   
++---Debug
+|       WindowPain.exe
+|       WindowPain.pdb
+|       
+\---WindowPain
+    |   TitleASCII.txt
+    |   WindowPain.cpp
+    |   WindowPain.vcxproj
+    |   WindowPain.vcxproj.filters
+    |   WindowPain.vcxproj.user
+    |   
+    +---Debug
+    |   |   vc143.idb
+    |   |   vc143.pdb
+    |   |   WindowPain.exe.recipe
+    |   |   WindowPain.ilk
+    |   |   WindowPain.obj
+    |   |   
+    |   \---WindowPain.tlog
+    |           CL.command.1.tlog
+    |           Cl.items.tlog
+    |           CL.read.1.tlog
+    |           CL.write.1.tlog
+    |           link.command.1.tlog
+    |           link.read.1.tlog
+    |           link.secondary.1.tlog
+    |           link.write.1.tlog
+    |           WindowPain.lastbuildstate
+    |           
+    +---WindowPain
+    |   \---x64
+    |       \---Debug
+    |           |   vc143.idb
+    |           |   vc143.pdb
+    |           |   WindowPain.exe.recipe
+    |           |   WindowPain.ilk
+    |           |   WindowPain.log
+    |           |   WindowPain.obj
+    |           |   
+    |           \---WindowPain.tlog
+    |                   CL.command.1.tlog
+    |                   Cl.items.tlog
+    |                   CL.read.1.tlog
+    |                   CL.write.1.tlog
+    |                   link.command.1.tlog
+    |                   link.read.1.tlog
+    |                   link.secondary.1.tlog
+    |                   link.write.1.tlog
+    |                   WindowPain.lastbuildstate
+    |                   
+    \---x64
+        \---Debug
+                WindowPain.exe
+                WindowPain.pdb
+                
