@@ -5,9 +5,12 @@
 #include <fstream>
 #include <string>
 #include <unordered_map>
+#include <iomanip>
+#include <iostream>
 #include <functional> // std::function
 #include <ctime> // For timestamp
 
+// Screen struct to hold screen information
 struct Screen {
     std::string processName;
     int currentLine;
@@ -123,30 +126,46 @@ void printTitle()
     std::cout << "\n\n";
 }
 
+/*
+ * help: Prints the available commands to the user.
+ */
 void help() {
-    std::cout << "Available commands: ";
+    std::cout << "\n";
+    std::cout << "Available commands:\n";
     printInColor("initialize", "green");
-    std::cout << ", ";
+    std::cout << "\n";
     printInColor("screen", "green");
-    std::cout << ", ";
+    std::cout << "\n";
     printInColor("scheduler-test", "green");
-    std::cout << ", ";
+    std::cout << "\n";
     printInColor("scheduler-stop", "green");
-    std::cout << ", ";
+    std::cout << "\n";
     printInColor("report-util", "green");
-    std::cout << ", ";
+    std::cout << "\n";
     printInColor("clear", "green");
-    std::cout << ", ";
+    std::cout << "\n";
     printInColor("exit", "green");
-    std::cout << ".\n";
+    std::cout << "\n";
+	std::cout << "\n";
 }
 
 void initialize() {
     std::cout << "'initialize' command recognized. Doing something." << std::endl;
 }
 
+/*
+ * screen: Prints the screen commands to the user.
+ */
 void screen() {
-    std::cout << "'screen' command recognized. Doing something." << std::endl;
+    std::cout << "\n";
+    std::cout << "'screen' commands:\n";
+	printInColor("screen -s <name>", "green");
+	std::cout << "\t(create a new screen)\n";
+	printInColor("screen -r <name>", "green");
+	std::cout << "\t(restore an existing screen)\n";
+	printInColor("screen -ls", "green");
+	std::cout << "\t\t(list all screens)\n";
+	std::cout << "\n";
 }
 
 void schedulerTest() {
@@ -161,6 +180,9 @@ void reportUtil() {
     std::cout << "'report-util' command recognized. Doing something." << std::endl;
 }
 
+/*
+ * clearScreen: Clears the screen and re-prints the title.
+ */
 void clearScreen() {
     system("cls");
     if (currentScreen.empty()) {
@@ -170,8 +192,12 @@ void clearScreen() {
     }
 }
 
+/*
+ * exitProgram: Exits the program.
+ */
 void exitProgram() {
     printInColor("Toodles!", "yellow");
+	std::cout << "\n";
     exit(0);
 }
 
@@ -208,9 +234,10 @@ void screenCreate(const std::string& name) {
 
     // Get current timestamp
     time_t now = time(0);
-    tm* ltm = localtime(&now);
+    tm ltm;
+	localtime_s(&ltm, &now);
     char timestamp[20];
-    strftime(timestamp, sizeof(timestamp), "%m/%d/%Y, %I:%M:%S %p", ltm);
+    strftime(timestamp, sizeof(timestamp), "%m/%d/%Y, %I:%M:%S %p", &ltm);
 
     // Create a new screen
     Screen newScreen;
@@ -302,7 +329,8 @@ void readCommand(const std::string& command) {
     // Unordered map to pair command with its corresponding function
     std::unordered_map<std::string, std::function<void()>> commandMap = {
         {"help", help},
-        {"initialize", initialize},
+		{"initialize", initialize},
+		{"screen", screen},
         {"scheduler-test", schedulerTest},
         {"scheduler-stop", schedulerStop},
         {"report-util", reportUtil},
@@ -319,6 +347,27 @@ void readCommand(const std::string& command) {
     else {
         printInColor("Unknown command. Type 'help' for available commands.\n", "red");
     }
+}
+
+/*
+ * showHelp: Prints the available commands to the user.
+ */
+void showHelp() {
+	std::cout << "Available commands: ";
+	printInColor("initialize", "green");
+	std::cout << ", ";
+	printInColor("screen", "green");
+	std::cout << ", ";
+	printInColor("scheduler-test", "green");
+	std::cout << ", ";
+	printInColor("scheduler-stop", "green");
+	std::cout << ", ";
+	printInColor("report-util", "green");
+	std::cout << ", ";
+	printInColor("clear", "green");
+	std::cout << ", ";
+	printInColor("exit", "green");
+	std::cout << ".\n";
 }
 
 /*
