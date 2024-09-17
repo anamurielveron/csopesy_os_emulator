@@ -5,6 +5,32 @@
 #include <fstream>
 #include <string>
 #include <unordered_map>
+#include <functional> // std::function
+#include <ctime> // For timestamp
+
+struct Screen {
+    std::string processName;
+    int currentLine;
+    int totalLines;
+    std::string timestamp;
+};
+
+std::unordered_map<std::string, Screen> screens;
+std::string currentScreen = "";
+
+
+// Function prototypes for good practice
+void initialize();
+void showMainMenu();
+void schedulerTest();
+void schedulerStop();
+void reportUtil();
+void clearScreen();
+void exitProgram();
+void screenCreate(const std::string& name);
+void screenRestore(const std::string& name);
+void handleScreenCommands(const std::string& input);
+void screenList();
 
 /*
  * setConsoleColor: changes console text to a specified color
@@ -97,7 +123,156 @@ void printTitle()
     std::cout << "\n\n";
 }
 
+void help() {
+    std::cout << "Available commands: ";
+    printInColor("initialize", "green");
+    std::cout << ", ";
+    printInColor("screen", "green");
+    std::cout << ", ";
+    printInColor("scheduler-test", "green");
+    std::cout << ", ";
+    printInColor("scheduler-stop", "green");
+    std::cout << ", ";
+    printInColor("report-util", "green");
+    std::cout << ", ";
+    printInColor("clear", "green");
+    std::cout << ", ";
+    printInColor("exit", "green");
+    std::cout << ".\n";
+}
 
+void initialize() {
+    std::cout << "'initialize' command recognized. Doing something." << std::endl;
+}
+
+void screen() {
+    std::cout << "'screen' command recognized. Doing something." << std::endl;
+}
+
+void schedulerTest() {
+    std::cout << "'scheduler-test' command recognized. Doing something." << std::endl;
+}
+
+void schedulerStop() {
+    std::cout << "'scheduler-stop' command recognized. Doing something." << std::endl;
+}
+
+void reportUtil() {
+    std::cout << "'report-util' command recognized. Doing something." << std::endl;
+}
+
+void clearScreen() {
+    system("cls");
+    if (currentScreen.empty()) {
+        printTitle();
+    } else {
+        screenRestore(currentScreen);
+    }
+}
+
+void exitProgram() {
+    printInColor("Toodles!", "yellow");
+    exit(0);
+}
+
+/*
+ * screenList: Lists all the active screens.
+ */
+void screenList() {
+    if (screens.empty()) {
+        printInColor("No active screens.\n", "red");
+        return;
+    }
+
+    std::cout << "Active screens:\n";
+    for (const auto& screen : screens) {
+        // Mark the currently active screen (if any)
+        if (screen.first == currentScreen) {
+            std::cout << screen.first << " (attached)\n";
+        } else {
+            std::cout << screen.first << "\n";
+        }
+    }
+}
+
+/*
+ * screenCreate: Creates a new screen with placeholder information.
+ * 
+ * @name: name of the screen
+ */
+void screenCreate(const std::string& name) {
+    if (screens.find(name) != screens.end()) {
+        printInColor("Screen already exists with this name.\n", "red");
+        return;
+    }
+
+    // Get current timestamp
+    time_t now = time(0);
+    tm* ltm = localtime(&now);
+    char timestamp[20];
+    strftime(timestamp, sizeof(timestamp), "%m/%d/%Y, %I:%M:%S %p", ltm);
+
+    // Create a new screen
+    Screen newScreen;
+    newScreen.processName = name;
+    newScreen.currentLine = 0;
+    newScreen.totalLines = 100; // Placeholder value
+    newScreen.timestamp = timestamp;
+
+    // Add to map and update current screen
+    screens[name] = newScreen;
+    currentScreen = name;
+    
+    // Render this screen
+    screenRestore(name);
+}
+
+/*
+ * screenRestore: Restores an existing screen by its name.
+ * 
+ * @name: name of the screen
+ */
+void screenRestore(const std::string& name) {
+    auto it = screens.find(name);
+    if (it == screens.end()) {
+        printInColor("No screen found with this name.\n", "red");
+        return;
+    }
+
+    // Set current screen
+    currentScreen = name;
+
+    // Clear the console before displaying screen information
+    system("cls");
+
+    // Fetch the screen and display its information
+    Screen& screen = it->second;
+
+    std::cout << "Screen Name: " << screen.processName << "\n";
+    std::cout << "Current Line: " << screen.currentLine << " / " << screen.totalLines << "\n";
+    std::cout << "Timestamp: " << screen.timestamp << "\n";
+}
+
+/*
+ * handleScreenCommands: Parses and handles screen commands
+ * 
+ * @input: command input string
+ */
+void handleScreenCommands(const std::string& input) {
+    // Parse command
+    if (input.find("screen -s ") == 0) {
+        std::string screenName = input.substr(10); // Get screen name
+        screenCreate(screenName);
+    } else if (input.find("screen -r ") == 0) {
+        std::string screenName = input.substr(10); // Get screen name
+        screenRestore(screenName);
+    } else if (input == "screen -ls") {
+        // List all screens
+        screenList();
+    } else {
+        printInColor("Unknown command. Type 'help' for available commands.\n", "red");
+    }
+}
 
 /*
  * readCommand: Checks whether the input is a recognized command.
@@ -105,27 +280,44 @@ void printTitle()
  * @command: string input from user
  */
 void readCommand(const std::string& command) {
-    // unordered map to pair command with acknowledgment messages
-    std::unordered_map<std::string, std::string> commandMap = {
-        {"help", ""},
-        {"initialize", "'initialize' command recognized. Doing something.\n"},
-        {"screen", "'screen' command recognized. Doing something.\n"},
-        {"scheduler-test", "'scheduler-test' command recognized. Doing something.\n"},
-        {"scheduler-stop", "'scheduler-stop' command recognized. Doing something.\n"},
-        {"report-util", "'report-util' command recognized. Doing something.\n"},
-        {"clear", "'clear' command recognized. Doing something.\n"},
-        {"exit", ""}
+    // Exit command for screen and main menu prompts
+    if (command == "exit") {
+        if (!currentScreen.empty()) {
+            // Set currentScreen to empty to exit the current screen and go back to main menu
+            currentScreen.clear();
+            clearScreen();
+        } else {
+            // Exit if its in main menu
+            exitProgram();
+        }
+        return; // Return just in case it didn't exit as expected
+    }
+
+    // Screen command checker
+	if (command.find("screen -s ") == 0 || command.find("screen -r ") == 0 || command == "screen -ls") {
+        handleScreenCommands(command);
+        return;
+    }
+
+    // Unordered map to pair command with its corresponding function
+    std::unordered_map<std::string, std::function<void()>> commandMap = {
+        {"help", help},
+        {"initialize", initialize},
+        {"scheduler-test", schedulerTest},
+        {"scheduler-stop", schedulerStop},
+        {"report-util", reportUtil},
+        {"clear", clearScreen}
+        // "exit" is now handled above
     };
 
-    // check if command exists
+    // Check if command exists
     auto it = commandMap.find(command);
     if (it != commandMap.end()) {
-        // print corresponding message
-        std::cout << it->second;
+        // Call the corresponding function
+        it->second();
     }
     else {
-        printInColor("Unknown command. Type 'help' for available commands.", "red");
-        std::cout << "\n";
+        printInColor("Unknown command. Type 'help' for available commands.\n", "red");
     }
 }
 
@@ -135,41 +327,20 @@ void readCommand(const std::string& command) {
 void commandLoop() {
     std::string input;
 
-    // command loop
+    // Command loop
     while (true) {
-        // std::cout << "Enter a command: ";
-        printInColor("Enter a command: ", "cyan");
-        std::getline(std::cin, input);  // get the input from user
+        if (currentScreen.empty()) {
+            // Main Menu prompt
+            printInColor("Enter a command: ", "cyan");
+        } else {
+            // screen-specific prompt
+            printInColor("[" + currentScreen + "]$ ", "cyan");
+        }
 
-        // acknowledge command
+        std::getline(std::cin, input);  // Get input from user
+
+        // Acknowledge command
         readCommand(input);
-
-        
-        if (input == "exit") {
-            printInColor("Toodles!", "yellow");
-            break;
-        }
-        else if (input == "clear") { // could be made into a separate function lol
-            system("cls");
-            printTitle();
-        }
-        else if (input == "help") { // could also be made into a separate function
-            std::cout << "Available commands: ";
-            printInColor("initialize", "green");
-            std::cout << ", ";
-            printInColor("screen", "green");
-            std::cout << ", ";
-            printInColor("scheduler-test", "green");
-            std::cout << ", ";
-            printInColor("scheduler-stop", "green");
-            std::cout << ", ";
-            printInColor("report-util", "green");
-            std::cout << ", ";
-            printInColor("clear", "green");
-            std::cout << ", ";
-            printInColor("exit", "green");
-            std::cout << ".\n";
-        }
     }
 }
 
