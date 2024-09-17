@@ -1,7 +1,6 @@
 // WindowPain.cpp : This file contains the 'main' function. Program execution begins and ends there.
 
 #include <iostream>
-#include <windows.h>
 #include <fstream>
 #include <string>
 #include <unordered_map>
@@ -9,6 +8,13 @@
 #include <iostream>
 #include <functional> // std::function
 #include <ctime> // For timestamp
+#include <sstream>
+
+#ifdef _WIN32
+#include <Windows.h> // For windows
+#else
+#include <unistd.h> // For Linux, macOS
+#endif
 
 // Screen struct to hold screen information
 struct Screen {
@@ -36,25 +42,36 @@ void handleScreenCommands(const std::string& input);
 void screenList();
 
 /*
- * setConsoleColor: changes console text to a specified color
- * 
- * @color: chosen text color
- */
-void setConsoleColor(WORD color)
-{
-    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-    SetConsoleTextAttribute(hConsole, color);
-}
-
-/* 
- * printInColor: Prints a string in the desired color
- * 
+ * printInColor: Prints a string in the desired color using cross-platform ANSI codes.
+ *
  * @text: string of text to be printed
  * @color: string of the chosen color
  */
 void printInColor(const std::string& text, const std::string& color) {
-    // define color codes
-    static std::unordered_map<std::string, WORD> colorMap = {
+    // Define ANSI escape color codes
+    static std::unordered_map<std::string, std::string> colorMap = {
+        {"black", "\033[30m"},
+        {"red", "\033[31m"},
+        {"green", "\033[32m"},
+        {"yellow", "\033[33m"},
+        {"blue", "\033[34m"},
+        {"magenta", "\033[35m"},
+        {"cyan", "\033[36m"},
+        {"white", "\033[37m"},
+        {"bright_black", "\033[90m"},
+        {"bright_red", "\033[91m"},
+        {"bright_green", "\033[92m"},
+        {"bright_yellow", "\033[93m"},
+        {"bright_blue", "\033[94m"},
+        {"bright_magenta", "\033[95m"},
+        {"bright_cyan", "\033[96m"},
+        {"bright_white", "\033[97m"},
+        {"reset", "\033[0m"}
+    };
+
+    // Use ANSI codes to print in color if on Unix-based system
+#ifdef _WIN32
+    static std::unordered_map<std::string, WORD> winColorMap = {
         {"black", 0},
         {"blue", FOREGROUND_BLUE},
         {"green", FOREGROUND_GREEN},
@@ -73,30 +90,33 @@ void printInColor(const std::string& text, const std::string& color) {
         {"bright_white", FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_INTENSITY}
     };
 
-    // save default console color
     HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
     CONSOLE_SCREEN_BUFFER_INFO consoleInfo;
     GetConsoleScreenBufferInfo(hConsole, &consoleInfo);
     WORD defaultColor = consoleInfo.wAttributes;
 
-    // set chosen color
-    auto it = colorMap.find(color);
-    if (it != colorMap.end()) {
-        setConsoleColor(it->second);
+    auto it = winColorMap.find(color);
+    if (it != winColorMap.end()) {
+        SetConsoleTextAttribute(hConsole, it->second);
     }
     else {
-        printInColor("Error: Unknown color name.", "red");
-        std::cout << "\n";
+        std::cout << "Error: Unknown color name.\n";
         return;
     }
-
-    // print the text
     std::cout << text;
+    SetConsoleTextAttribute(hConsole, defaultColor);
 
-    // reset to default color
-    setConsoleColor(defaultColor);
+#else
+// Print the text with ANSI color codes on non-Windows systems
+    auto it = colorMap.find(color);
+    if (it != colorMap.end()) {
+        std::cout << it->second << text << colorMap["reset"];
+    }
+    else {
+        std::cout << text; // Fallback if color not found
+    }
+#endif
 }
-
 
 /*
  * printTitle: Prints the ASCII art of the commandline's title from the .txt file.
@@ -184,10 +204,15 @@ void reportUtil() {
  * clearScreen: Clears the screen and re-prints the title.
  */
 void clearScreen() {
+#ifdef _WIN32
     system("cls");
+#else
+    system("clear");
+#endif
     if (currentScreen.empty()) {
         printTitle();
-    } else {
+    }
+    else {
         screenRestore(currentScreen);
     }
 }
@@ -235,7 +260,11 @@ void screenCreate(const std::string& name) {
     // Get current timestamp
     time_t now = time(0);
     tm ltm;
-	localtime_s(&ltm, &now);
+#ifdef _WIN32
+    localtime_s(&ltm, &now);
+#else
+    localtime_r(&now, &ltm);
+#endif
     char timestamp[20];
     strftime(timestamp, sizeof(timestamp), "%m/%d/%Y, %I:%M:%S %p", &ltm);
 
