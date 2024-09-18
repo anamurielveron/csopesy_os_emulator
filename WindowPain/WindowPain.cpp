@@ -257,16 +257,13 @@ void screenCreate(const std::string& name) {
         return;
     }
 
-    // Get current timestamp
+	// Get current timestamp
     time_t now = time(0);
-    tm ltm;
-#ifdef _WIN32
-    localtime_s(&ltm, &now);
-#else
-    localtime_r(&now, &ltm);
-#endif
-    char timestamp[20];
-    strftime(timestamp, sizeof(timestamp), "%m/%d/%Y, %I:%M:%S %p", &ltm);
+    std::tm* ltm = std::localtime(&now);
+    char timestamp[30];
+    
+    // Format the timestamp as (MM/DD/YYYY, HH:MM:SS AM/PM)
+    strftime(timestamp, sizeof(timestamp), "%m/%d/%Y, %I:%M:%S %p", ltm);
 
     // Create a new screen
     Screen newScreen;
