@@ -16,30 +16,41 @@
 #include <unistd.h> // For Linux, macOS
 #endif
 
-// Screen struct to hold screen information
-struct Screen {
-    std::string processName;
-    int currentLine;
-    int totalLines;
-    std::string timestamp;
+class Screen {
+    public:
+        std::string processName;
+        int currentLine;
+        int totalLines;
+        std::string timestamp;
+};        
+
+class CommandHandler {
+    public:
+        CommandHandler() : currentScreen("") {}
+        void commandLoop();
+        void handleScreenCommands(const std::string& input);
+        void readCommand(const std::string& command);
+        
+        void help();
+        void initialize();
+        void screen();
+        void screenList();
+        void screenCreate(const std::string& name);
+        void screenRestore(const std::string& name);
+        void schedulerTest();
+        void schedulerStop();
+        void reportUtil();
+        void clearScreen();
+        void exitProgram();
+        void printTitle();
+
+    private:
+        std::unordered_map<std::string, Screen> screens;
+        std::string currentScreen;
 };
 
-std::unordered_map<std::string, Screen> screens;
-std::string currentScreen = "";
-
-
-// Function prototypes for good practice
-void initialize();
-void showMainMenu();
-void schedulerTest();
-void schedulerStop();
-void reportUtil();
-void clearScreen();
-void exitProgram();
-void screenCreate(const std::string& name);
-void screenRestore(const std::string& name);
-void handleScreenCommands(const std::string& input);
-void screenList();
+// Other helper functions
+void printInColor(const std::string& text, const std::string& color);
 
 /*
  * printInColor: Prints a string in the desired color using cross-platform ANSI codes.
@@ -121,7 +132,7 @@ void printInColor(const std::string& text, const std::string& color) {
 /*
  * printTitle: Prints the ASCII art of the commandline's title from the .txt file.
  */
-void printTitle()
+void CommandHandler::printTitle()
 {
     // open file
     std::ifstream file("..\\WindowPain\\TitleASCII.txt");
@@ -149,7 +160,7 @@ void printTitle()
 /*
  * help: Prints the available commands to the user.
  */
-void help() {
+void CommandHandler::help() {
     std::cout << "\n";
     std::cout << "Available commands:\n";
     printInColor("initialize", "green");
@@ -169,14 +180,14 @@ void help() {
 	std::cout << "\n";
 }
 
-void initialize() {
+void CommandHandler::initialize() {
     std::cout << "'initialize' command recognized. Doing something." << std::endl;
 }
 
 /*
  * screen: Prints the screen commands to the user.
  */
-void screen() {
+void CommandHandler::screen() {
     std::cout << "\n";
     std::cout << "'screen' commands:\n";
 	printInColor("screen -s <name>", "green");
@@ -188,22 +199,22 @@ void screen() {
 	std::cout << "\n";
 }
 
-void schedulerTest() {
+void CommandHandler::schedulerTest() {
     std::cout << "'scheduler-test' command recognized. Doing something." << std::endl;
 }
 
-void schedulerStop() {
+void CommandHandler::schedulerStop() {
     std::cout << "'scheduler-stop' command recognized. Doing something." << std::endl;
 }
 
-void reportUtil() {
+void CommandHandler::reportUtil() {
     std::cout << "'report-util' command recognized. Doing something." << std::endl;
 }
 
 /*
  * clearScreen: Clears the screen and re-prints the title.
  */
-void clearScreen() {
+void CommandHandler::clearScreen() {
 #ifdef _WIN32
     system("cls");
 #else
@@ -220,7 +231,7 @@ void clearScreen() {
 /*
  * exitProgram: Exits the program.
  */
-void exitProgram() {
+void CommandHandler::exitProgram() {
     printInColor("Toodles!", "yellow");
 	std::cout << "\n";
     exit(0);
@@ -229,7 +240,7 @@ void exitProgram() {
 /*
  * screenList: Lists all the active screens.
  */
-void screenList() {
+void CommandHandler::screenList() {
     if (screens.empty()) {
         printInColor("No active screens.\n", "red");
         return;
@@ -251,7 +262,7 @@ void screenList() {
  * 
  * @name: name of the screen
  */
-void screenCreate(const std::string& name) {
+void CommandHandler::screenCreate(const std::string& name) {
     if (screens.find(name) != screens.end()) {
         printInColor("Screen already exists with this name.\n", "red");
         return;
@@ -287,7 +298,7 @@ void screenCreate(const std::string& name) {
  * 
  * @name: name of the screen
  */
-void screenRestore(const std::string& name) {
+void CommandHandler::screenRestore(const std::string& name) {
     auto it = screens.find(name);
     if (it == screens.end()) {
         printInColor("No screen found with this name.\n", "red");
@@ -313,7 +324,7 @@ void screenRestore(const std::string& name) {
  * 
  * @input: command input string
  */
-void handleScreenCommands(const std::string& input) {
+void CommandHandler::handleScreenCommands(const std::string& input) {
     // Parse command
     if (input.find("screen -s ") == 0) {
         std::string screenName = input.substr(10); // Get screen name
@@ -334,7 +345,7 @@ void handleScreenCommands(const std::string& input) {
  * 
  * @command: string input from user
  */
-void readCommand(const std::string& command) {
+void CommandHandler::readCommand(const std::string& command) {
     // Exit command for screen and main menu prompts
     if (command == "exit") {
         if (!currentScreen.empty()) {
@@ -356,14 +367,13 @@ void readCommand(const std::string& command) {
 
     // Unordered map to pair command with its corresponding function
     std::unordered_map<std::string, std::function<void()>> commandMap = {
-        {"help", help},
-		{"initialize", initialize},
-		{"screen", screen},
-        {"scheduler-test", schedulerTest},
-        {"scheduler-stop", schedulerStop},
-        {"report-util", reportUtil},
-        {"clear", clearScreen}
-        // "exit" is now handled above
+        {"help", std::bind(&CommandHandler::help, this)},
+        {"initialize", std::bind(&CommandHandler::initialize, this)},
+        {"screen", std::bind(&CommandHandler::screen, this)},
+        {"scheduler-test", std::bind(&CommandHandler::schedulerTest, this)},
+        {"scheduler-stop", std::bind(&CommandHandler::schedulerStop, this)},
+        {"report-util", std::bind(&CommandHandler::reportUtil, this)},
+        {"clear", std::bind(&CommandHandler::clearScreen, this)}
     };
 
     // Check if command exists
@@ -378,30 +388,9 @@ void readCommand(const std::string& command) {
 }
 
 /*
- * showHelp: Prints the available commands to the user.
- */
-void showHelp() {
-	std::cout << "Available commands: ";
-	printInColor("initialize", "green");
-	std::cout << ", ";
-	printInColor("screen", "green");
-	std::cout << ", ";
-	printInColor("scheduler-test", "green");
-	std::cout << ", ";
-	printInColor("scheduler-stop", "green");
-	std::cout << ", ";
-	printInColor("report-util", "green");
-	std::cout << ", ";
-	printInColor("clear", "green");
-	std::cout << ", ";
-	printInColor("exit", "green");
-	std::cout << ".\n";
-}
-
-/*
  * commandLoop: Prompts the user to enter a command until exited.
  */
-void commandLoop() {
+void CommandHandler::commandLoop() {
     std::string input;
 
     // Command loop
@@ -424,9 +413,10 @@ void commandLoop() {
 
 int main()
 {
-    printTitle();
+    CommandHandler commandHandler;
+    commandHandler.printTitle();
 
-    commandLoop();
+    commandHandler.commandLoop();
 
     return 0;
 }
