@@ -19,8 +19,8 @@
 class Screen {
     public:
         std::string processName;
-        int currentLine;
-        int totalLines;
+        int currentLine = 0; // placeholder
+        int totalLines = 100; // placeholder
         std::string timestamp;
 };        
 
@@ -281,8 +281,6 @@ void CommandHandler::screenCreate(const std::string& name) {
     // Create a new screen
     Screen newScreen;
     newScreen.processName = name;
-    newScreen.currentLine = 0;
-    newScreen.totalLines = 100; // Placeholder value
     newScreen.timestamp = timestamp;
 
     // Add to map and update current screen
