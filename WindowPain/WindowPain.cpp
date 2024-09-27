@@ -378,10 +378,10 @@ void ScreenManager::screenList() {
     for (const auto& screen : screens) {
         // Mark the currently active screen (if any)
         if (screen.first == currentScreen) {
-            std::cout << screen.first << " (attached)\n";
+            std::cout << screen.first << " (attached) \t(" << screens[screen.first].timestamp << ")\n";
         }
         else {
-            std::cout << screen.first << "\n";
+            std::cout << screen.first << " \t(" << screens[screen.first].timestamp << ")\n";
         }
     }
 }
