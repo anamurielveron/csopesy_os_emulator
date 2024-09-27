@@ -1,5 +1,6 @@
 // WindowPain.cpp : This file contains the 'main' function. Program execution begins and ends there.
 
+#include <memory>
 #include <iostream>
 #include <fstream>
 #include <string>
