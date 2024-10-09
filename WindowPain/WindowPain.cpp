@@ -53,7 +53,7 @@ public:
 // Screen
 class Screen {
 public:
-    String processName;     // process name saved by user
+    String processName = "Untitled";     // process name saved by user
     int currentLine = 0;    // N/A
     int totalLines = 100;   // N/A
     String timestamp;       // timestamp of when screen was created
@@ -192,7 +192,8 @@ void MainMenuConsole::printTitle() {
 
     // check if file exists
     if (!file) {
-        std::cerr << "Error: Could not open the file." << std::endl;
+        printInColor("Error: TitleASCII.txt not found.\n", "red");
+        return;
     }
 
     // print file
