@@ -21,8 +21,6 @@
 
 // Shortcuts
 typedef std::string String;
-const String MAINMENU_CONSOLE = "MAINMENU_CONSOLE";
-const String SCREEN_CONSOLE = "SCREEN_CONSOLE";
 
 // ******* CLASSES *********************************************************************************
 
@@ -33,6 +31,7 @@ class ScreenConsole;
 class Screen;
 class ScreenManager;
 class ConsoleManager;
+enum class ConsoleType { MainMenu, Screen };
 
 // Function prototypes
 void printInColor(const String& text, const String& color);
@@ -128,16 +127,15 @@ public:
 // Console Manager
 class ConsoleManager {
 private:
-    std::unique_ptr<AConsole> currentConsole;   // pointer to current console
-    std::unique_ptr<ScreenManager> screenManager; // pointer to ScreenManager
-    String currentConsoleName = "";
+    std::unique_ptr<AConsole> currentConsole;       // pointer to current console
+    std::unique_ptr<ScreenManager> screenManager;   // pointer to ScreenManager
+    ConsoleType currentConsoleType;                 // current console type
 public:
-    ConsoleManager() : screenManager(std::make_unique<ScreenManager>(*this)) {}
+    ConsoleManager() : screenManager(std::make_unique<ScreenManager>(*this)), currentConsoleType(ConsoleType::MainMenu) {}
     ScreenManager& getScreenManager() { return *screenManager; }
-    String getCurrentConsoleName() { return currentConsoleName; }
-    void switchToMainMenu();                    // switch to main menu console
-    void switchToScreen();                      // switch to screen console
-    void passCommand(const String& command);    // passes command to the current console
+    ConsoleType getCurrentConsoleType() { return currentConsoleType; }
+    void switchConsole(ConsoleType consoleType);    // switch to a specified console
+    void passCommand(const String& command);        // passes command to the current console
 };
 
 // ******* CLASS FUNCTIONS *********************************************************************************
@@ -309,7 +307,7 @@ void ScreenConsole::clear() {
 
 void ScreenConsole::exitScreen() {
     screenManager.currentScreen = "";
-    consoleManager.switchToMainMenu();
+    consoleManager.switchConsole(ConsoleType::MainMenu);
 }
 
 void ScreenConsole::draw() {
@@ -351,7 +349,7 @@ void ScreenManager::screenCreate(const String& name) {
     currentScreen = name;
 
     // Switch to screen console
-    consoleManager.switchToScreen();
+    consoleManager.switchConsole(ConsoleType::Screen);
 }
 
 void ScreenManager::screenRestore(const String& name) {
@@ -365,7 +363,7 @@ void ScreenManager::screenRestore(const String& name) {
     currentScreen = name;
 
     // Switch to screen console
-    consoleManager.switchToScreen();
+    consoleManager.switchConsole(ConsoleType::Screen);
 }
 
 void ScreenManager::screenList() {
@@ -386,15 +384,17 @@ void ScreenManager::screenList() {
     }
 }
 
-void ConsoleManager::switchToMainMenu() {
-    currentConsoleName = MAINMENU_CONSOLE;
-    currentConsole = std::make_unique<MainMenuConsole>(*screenManager, *this);
-    currentConsole->draw();
-}
-
-void ConsoleManager::switchToScreen() {
-    currentConsoleName = SCREEN_CONSOLE;
-    currentConsole = std::make_unique<ScreenConsole>(*screenManager, *this);
+void ConsoleManager::switchConsole(ConsoleType consoleType) {
+    switch (consoleType) {
+    case ConsoleType::MainMenu:
+        currentConsoleType = ConsoleType::MainMenu;
+        currentConsole = std::make_unique<MainMenuConsole>(*screenManager, *this);
+        break;
+    case ConsoleType::Screen:
+        currentConsoleType = ConsoleType::Screen;
+        currentConsole = std::make_unique<ScreenConsole>(*screenManager, *this);
+        break;
+    }
     currentConsole->draw();
 }
 
@@ -480,12 +480,12 @@ void commandLoop(ConsoleManager& console) {
 
     // Command loop
     while (true) {
-        if (console.getCurrentConsoleName() == MAINMENU_CONSOLE) {
+        if (console.getCurrentConsoleType() == ConsoleType::MainMenu) {
             printInColor("Enter a command: ", "cyan");
         }
-        else if (console.getCurrentConsoleName() == SCREEN_CONSOLE) {
+        else if (console.getCurrentConsoleType() == ConsoleType::Screen) {
             printInColor("[" + console.getScreenManager().currentScreen + "]$ ", "cyan");
-        }        
+        }
         std::getline(std::cin, input);
         console.passCommand(input);
     }
@@ -496,7 +496,7 @@ void commandLoop(ConsoleManager& console) {
 
 int main() {
     ConsoleManager consoleManager;
-    consoleManager.switchToMainMenu();
+    consoleManager.switchConsole(ConsoleType::MainMenu);
 
     commandLoop(consoleManager);
 
