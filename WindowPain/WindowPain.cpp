@@ -633,9 +633,7 @@ void printInColor(const String& text, const String& color) {
 }
 
 void commandLoop(ConsoleManager& console) {
-    String input;   
-
-    schedulerTest();
+    String input;
 
     // Command loop
     while (true) {
@@ -657,8 +655,7 @@ int main() {
     ConsoleManager consoleManager;
     consoleManager.switchConsole(ConsoleType::MainMenu);
 
-    //TEMP: pass command "scheduler-test" on run
-    consoleManager.passCommand("scheduler-test");
+    consoleManager.passCommand("scheduler-test"); //TEMP: pass command "scheduler-test" on run
 
     commandLoop(consoleManager);
 
