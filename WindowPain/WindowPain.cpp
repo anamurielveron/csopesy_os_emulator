@@ -149,10 +149,10 @@ private:
             localtime_r(&now, &ltm);
 #endif
             char timestamp[25];
-            strftime(timestamp, sizeof(timestamp), "%m/%d/%Y, %I:%M:%S %p", &ltm);
+            strftime(timestamp, sizeof(timestamp), "(%m/%d/%Y %I:%M:%S %p)", &ltm);
 
             // Write to log file
-            logFile << timestamp << " Core:" << coreId << " \"Hello world from " << screen->name << "\"\n";
+            logFile << timestamp << " Core:" << coreId << " \"Hello world from " << screen->name << "!\"\n";
             screen->currentLine++;
         }
 
@@ -474,7 +474,7 @@ void ScreenManager::screenCreate(const String& name) {
     localtime_r(&now, &ltm);
 #endif
     char timestamp[25];
-    strftime(timestamp, sizeof(timestamp), "%m/%d/%Y, %I:%M:%S %p", &ltm);
+    strftime(timestamp, sizeof(timestamp), "%m/%d/%Y %I:%M:%S %p", &ltm);
 
     // Create a new screen
     Screen newScreen(name, 100);
@@ -507,7 +507,7 @@ void ScreenManager::screenList() {
     int cnt_running = 0;
     if (!screens.empty()) {
         for (const auto& screen : screens) {
-            if (!screen.second.finished) {
+            if (!screen.second.finished && screen.second.coreId != -1) {
                 cnt_running++;
                 std::cout << std::setw(10) << std::left << screen.first << "   "
                     << "(" << screens[screen.first].timestamp << ")    "
