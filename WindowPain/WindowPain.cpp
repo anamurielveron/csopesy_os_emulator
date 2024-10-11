@@ -517,7 +517,7 @@ void ScreenManager::screenList() {
         }
     }
     if (cnt_running == 0) {
-        printInColor("No running processes.\n", "red");
+        printInColor("No running processes.\n", "gray");
     }
 
     std::cout << "\nFinished processess:\n";
@@ -535,7 +535,7 @@ void ScreenManager::screenList() {
         }
     }
     if (cnt_finished == 0) {
-        printInColor("No finished processes.\n", "red");
+        printInColor("No finished processes.\n", "gray");
     }
 
     std::cout << "---------------------------------------\n\n";
@@ -572,7 +572,7 @@ void printInColor(const String& text, const String& color) {
         {"magenta", "\033[35m"},
         {"cyan", "\033[36m"},
         {"white", "\033[37m"},
-        {"bright_black", "\033[90m"},
+        {"gray", "\033[90m"},
         {"bright_red", "\033[91m"},
         {"bright_green", "\033[92m"},
         {"bright_yellow", "\033[93m"},
