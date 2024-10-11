@@ -74,12 +74,12 @@ public:
 // Screen
 class Screen {
 public:
-    String name = "Untitled";     // process name saved by user
-    int currentLine = 0;    // N/A
-    int totalLines = -1;   // N/A
-    String timestamp;       // timestamp of when screen was created
-    int coreId = -1; // The core assigned to this process
-    bool finished = false; // Added flag to indicate if process is finished
+    String name = "Untitled";       // process name saved by user
+    int currentLine = 0;            // N/A
+    int totalLines = -1;            // N/A
+    String timestamp;               // timestamp of when screen was created
+    int coreId = -1;                // The core assigned to this process
+    bool finished = false;          // Added flag to indicate if process is finished
 
     Screen() = default;
 
@@ -94,25 +94,40 @@ private:
     std::condition_variable cv;
     bool finished = false;
     std::vector<std::thread> cores;
+	int numCores = 4;
+	int nextCore = 0;
 
     void worker(int coreId) {
         while (true) {
-            Screen* screen;
+            Screen* screen = nullptr;
 
             {
                 std::unique_lock<std::mutex> lock(queueMutex);
-                cv.wait(lock, [this] { return finished || !screenQueue.empty(); });
+                cv.wait(lock, [this] {
+                    return finished || !screenQueue.empty();
+                });
 
+				// Exit the thread if finished and no more processes
                 if (finished && screenQueue.empty()) {
-                    return; // Exit the thread if finished and no more processes
+                    return;
                 }
 
-                screen = screenQueue.front();
-                screenQueue.pop();
+				// Get the next process in the queue if it is assigned to the current core
+                if (nextCore == coreId && !screenQueue.empty()) {
+					screen = screenQueue.front();
+					screenQueue.pop();
+					//update next core
+					nextCore = (nextCore + 1) % numCores;
+				}
+				else {
+					continue;
+				}
             }
 
             // Simulate process execution
-            executeProcess(screen, coreId);
+            if (screen) {
+                executeProcess(screen, coreId);
+            }
         }
     }
 
