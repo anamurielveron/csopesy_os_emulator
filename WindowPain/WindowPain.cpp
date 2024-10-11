@@ -207,7 +207,7 @@ class MainMenuConsole : public AConsole {
 private:
     ConsoleManager& consoleManager;   // reference to the console manager
     ScreenManager& screenManager;   // reference to the screen manager
-    Scheduler* scheduler;
+    Scheduler* scheduler = nullptr;
     
     void printTitle();      // prints the main menu title
     void help();            // list all commands for main menu console
