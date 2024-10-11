@@ -655,6 +655,9 @@ int main() {
     ConsoleManager consoleManager;
     consoleManager.switchConsole(ConsoleType::MainMenu);
 
+    //TEMP: pass command "scheduler-test" on run
+    consoleManager.passCommand("scheduler-test");
+
     commandLoop(consoleManager);
 
     return 0;
