@@ -36,7 +36,6 @@ class MainMenuConsole;
 class ScreenConsole;
 class Screen;
 class ScreenManager;
-class Process;
 class Scheduler;
 enum class ConsoleType { MainMenu, Screen };
 
