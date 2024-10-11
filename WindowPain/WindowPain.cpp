@@ -11,6 +11,11 @@
 #include <ctime> // For timestamp
 #include <sstream>
 #include <algorithm>
+#include <thread>
+#include <queue>
+#include <mutex>
+#include <condition_variable>
+#include <vector>
 
 // Support for other OS
 #ifdef _WIN32
@@ -30,6 +35,8 @@ class MainMenuConsole;
 class ScreenConsole;
 class Screen;
 class ScreenManager;
+class Process;
+class Scheduler;
 class ConsoleManager;
 enum class ConsoleType { MainMenu, Screen };
 
@@ -53,11 +60,108 @@ public:
 // Screen
 class Screen {
 public:
-    String processName = "Untitled";     // process name saved by user
+    String name = "Untitled";     // process name saved by user
     int currentLine = 0;    // N/A
     int totalLines = 100;   // N/A
     String timestamp;       // timestamp of when screen was created
 };
+
+// Process (merge with screen later)
+class Process {
+public:
+    String name;
+    int printCommands;
+    int coreId; // The core assigned to this process
+
+    Process(const String& name, int printCommands)
+        : name(name), printCommands(printCommands), coreId(-1) {}
+};
+
+class Scheduler {
+private:
+    std::queue<Process*> processQueue;
+    std::mutex queueMutex;
+    std::condition_variable cv;
+    bool finished = false;
+    std::vector<std::thread> cores;
+
+    void worker(int coreId) {
+        while (true) {
+            Process* process;
+
+            {
+                std::unique_lock<std::mutex> lock(queueMutex);
+                cv.wait(lock, [this] { return finished || !processQueue.empty(); });
+
+                if (finished && processQueue.empty()) {
+                    return; // Exit the thread if finished and no more processes
+                }
+
+                process = processQueue.front();
+                processQueue.pop();
+            }
+
+            // Simulate process execution
+            executeProcess(process, coreId);
+        }
+    }
+
+    void executeProcess(Process* process, int coreId) {
+        process->coreId = coreId;
+
+        // Simulate executing print commands
+        std::ofstream logFile(process->name + ".txt");
+
+        for (int i = 0; i < process->printCommands; ++i) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Simulate work
+            // Get current timestamp
+            time_t now = time(0);
+            tm ltm;
+
+#ifdef _WIN32
+            localtime_s(&ltm, &now);
+#else
+            localtime_r(&now, &ltm);
+#endif
+            char timestamp[25];
+            strftime(timestamp, sizeof(timestamp), "%m/%d/%Y, %I:%M:%S %p", &ltm);
+
+            // Write to log file
+            logFile << timestamp << " Core:" << coreId << " \"Hello world from " << process->name << "\"\n";
+        }
+
+        logFile.close();
+    }
+
+public:
+    Scheduler(int numCores) {
+        for (int i = 0; i < numCores; ++i) {
+            cores.emplace_back(&Scheduler::worker, this, i);
+        }
+    }
+
+    ~Scheduler() {
+        finished = true;
+        cv.notify_all();
+        for (auto& core : cores) {
+            core.join();
+        }
+    }
+
+    void addProcess(Process* process) {
+        {
+            std::lock_guard<std::mutex> lock(queueMutex);
+            processQueue.push(process);
+        }
+        cv.notify_one();
+    }
+
+    void finish() {
+        finished = true;
+        cv.notify_all();
+    }
+};
+
 
 // Abstract Console
 class AConsole {
@@ -75,6 +179,8 @@ class MainMenuConsole : public AConsole {
 private:
     ConsoleManager& consoleManager;   // reference to the console manager
     ScreenManager& screenManager;   // reference to the screen manager
+    Scheduler* scheduler;
+    
     void printTitle();      // prints the main menu title
     void help();            // list all commands for main menu console
     void initialize();      // N/A
@@ -84,6 +190,7 @@ private:
     void reportUtil();      // N/A
     void clear();           // redraws the screen console
     void exitProgram();     // exits the program
+
 public:
     MainMenuConsole(ScreenManager& sm, ConsoleManager& cm) : screenManager(sm), consoleManager(cm) {
         // initializes the command map
@@ -97,7 +204,10 @@ public:
         commandMap["scheduler-stop"] = [this]() { schedulerStop(); };
         commandMap["report-util"] = [this]() { reportUtil(); };
         commandMap["clear"] = [this]() { clear(); };
-        commandMap["exit"] = [this]() { exitProgram(); };
+        commandMap["exit"] = [this]() { exitProgram();
+        
+        commandMap["scheduler-test"] = [this]() { schedulerTest(); };
+        commandMap["scheduler-stop"] = [this]() { schedulerStop(); }; };
     };
     void draw() override;   // draws the main menu console
 };
@@ -247,13 +357,13 @@ void MainMenuConsole::screen() {
     std::cout << "\n";
 }
 
-void MainMenuConsole::schedulerTest() {
+/*void MainMenuConsole::schedulerTest() {
     std::cout << "'scheduler-test' command recognized. Doing something.\n";
 }
 
 void MainMenuConsole::schedulerStop() {
     std::cout << "'scheduler-stop' command recognized. Doing something.\n";
-}
+}*/
 
 void MainMenuConsole::reportUtil() {
     std::cout << "'report-util' command recognized. Doing something.\n";
@@ -276,6 +386,29 @@ void MainMenuConsole::draw() {
     system("clear");
 #endif
     printTitle();
+}
+
+void MainMenuConsole::schedulerTest() {
+    printInColor("Starting scheduler test...\n", "yellow");
+
+    // Initialize scheduler with 4 cores
+    scheduler = new Scheduler(4);
+
+    // Create and add processes
+    for (int i = 1; i <= 10; ++i) {
+        String processName = "screen_" + std::to_string(i);
+        Process* process = new Process(processName, 100); // 100 print commands
+        scheduler->addProcess(process);
+    }
+}
+
+void MainMenuConsole::schedulerStop() {
+    if (scheduler) {
+        scheduler->finish();
+        delete scheduler; // Cleanup
+        scheduler = nullptr;
+    }
+    printInColor("Scheduler stopped.\n", "green");
 }
 
 void ScreenConsole::help() {
@@ -315,7 +448,7 @@ void ScreenConsole::draw() {
 #endif
     String currentScreen = screenManager.currentScreen;
 
-    std::cout << "Screen Name: " << screenManager.screens[currentScreen].processName << "\n";
+    std::cout << "Screen Name: " << screenManager.screens[currentScreen].name << "\n";
     std::cout << "Current Line: " << screenManager.screens[currentScreen].currentLine << " / " << screenManager.screens[currentScreen].totalLines << "\n";
     std::cout << "Timestamp: " << screenManager.screens[currentScreen].timestamp << "\n\n";
 }
@@ -338,7 +471,7 @@ void ScreenManager::screenCreate(const String& name) {
 
     // Create a new screen
     Screen newScreen;
-    newScreen.processName = name;
+    newScreen.name = name;
     newScreen.timestamp = timestamp;
 
     // Add to map and update current screen
