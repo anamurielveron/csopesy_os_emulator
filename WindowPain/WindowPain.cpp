@@ -279,27 +279,23 @@ void MainMenuConsole::draw() {
 }
 
 void ScreenConsole::help() {
-    std::cout << "\n";
-    std::cout << "Available commands:\n";
+    std::cout << "\nAvailable commands:\n";
     printInColor("screen", "green");
     std::cout << "\n";
     printInColor("clear", "green");
     std::cout << "\n";
     printInColor("exit", "green");
-    std::cout << "\n";
-    std::cout << "\n";
+    std::cout << "\n\n";
 }
 
 void ScreenConsole::screen() {
-    std::cout << "\n";
-    std::cout << "'screen' commands:\n";
+    std::cout << "\n'screen' commands:\n";
     printInColor("screen -s <name>", "green");
     std::cout << "\t(create a new screen)\n";
     printInColor("screen -r <name>", "green");
     std::cout << "\t(restore an existing screen)\n";
     printInColor("screen -ls", "green");
-    std::cout << "\t\t(list all screens)\n";
-    std::cout << "\n";
+    std::cout << "\t\t(list all screens)\n\n";
 }
 
 void ScreenConsole::clear() {
@@ -321,7 +317,7 @@ void ScreenConsole::draw() {
 
     std::cout << "Screen Name: " << screenManager.screens[currentScreen].processName << "\n";
     std::cout << "Current Line: " << screenManager.screens[currentScreen].currentLine << " / " << screenManager.screens[currentScreen].totalLines << "\n";
-    std::cout << "Timestamp: " << screenManager.screens[currentScreen].timestamp << "\n";
+    std::cout << "Timestamp: " << screenManager.screens[currentScreen].timestamp << "\n\n";
 }
 
 void ScreenManager::screenCreate(const String& name) {
@@ -368,21 +364,27 @@ void ScreenManager::screenRestore(const String& name) {
 }
 
 void ScreenManager::screenList() {
+
+    std::cout << "\n---------------------------------------\n";
+    std::cout << "Running processess:\n";
+    // TODO: List down running processes (modify the current implementation below)
     if (screens.empty()) {
         printInColor("No active screens.\n", "red");
-        return;
+    }
+    else {
+        for (const auto& screen : screens) {
+             std::cout << std::setw(10) << std::left << screen.first << "   "
+                 << "(" << screens[screen.first].timestamp << ")    "
+                 << "Core: " << std::setw(3) << std::left << "x" << "   "
+                 << "xxx / xxx" << "\n";
+        }
     }
 
-    std::cout << "Active screens:\n";
-    for (const auto& screen : screens) {
-        // Mark the currently active screen (if any)
-        if (screen.first == currentScreen) {
-            std::cout << screen.first << " (attached) \t(" << screens[screen.first].timestamp << ")\n";
-        }
-        else {
-            std::cout << screen.first << " \t(" << screens[screen.first].timestamp << ")\n";
-        }
-    }
+    std::cout << "\nFinished processess:\n";
+    // TODO: List down finished processes
+    printInColor("To be implemented later.\n", "red");
+
+    std::cout << "---------------------------------------\n\n";
 }
 
 void ConsoleManager::switchConsole(ConsoleType consoleType) {
