@@ -492,7 +492,7 @@ void ScreenManager::screenList() {
     int cnt_running = 0;
     if (!screens.empty()) {
         for (const auto& screen : screens) {
-            if (!screen.second.finished) {
+            if (!screen.second.finished && screen.second.coreId != -1) {
                 cnt_running++;
                 std::cout << std::setw(10) << std::left << screen.first << "   "
                     << "(" << screens[screen.first].timestamp << ")    "
