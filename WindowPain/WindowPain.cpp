@@ -633,7 +633,9 @@ void printInColor(const String& text, const String& color) {
 }
 
 void commandLoop(ConsoleManager& console) {
-    String input;
+    String input;   
+
+    schedulerTest();
 
     // Command loop
     while (true) {
