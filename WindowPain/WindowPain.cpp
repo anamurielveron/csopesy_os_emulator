@@ -357,14 +357,6 @@ void MainMenuConsole::screen() {
     std::cout << "\n";
 }
 
-/*void MainMenuConsole::schedulerTest() {
-    std::cout << "'scheduler-test' command recognized. Doing something.\n";
-}
-
-void MainMenuConsole::schedulerStop() {
-    std::cout << "'scheduler-stop' command recognized. Doing something.\n";
-}*/
-
 void MainMenuConsole::reportUtil() {
     std::cout << "'report-util' command recognized. Doing something.\n";
 }
@@ -389,14 +381,14 @@ void MainMenuConsole::draw() {
 }
 
 void MainMenuConsole::schedulerTest() {
-    printInColor("Starting scheduler test...\n", "yellow");
+    printInColor("Scheduler has started.\n\n", "yellow");
 
     // Initialize scheduler with 4 cores
     scheduler = new Scheduler(4);
 
     // Create and add processes
     for (int i = 1; i <= 10; ++i) {
-        String screenName = "screen_" + std::to_string(i);
+        String screenName = "process" + std::string((i < 10 ? "0" : "") + std::to_string(i));
         screenManager.screenCreate(screenName);
         scheduler->addProcess(screenManager.screens[screenName]);
     }
@@ -405,7 +397,7 @@ void MainMenuConsole::schedulerTest() {
 void MainMenuConsole::schedulerStop() {
     if (scheduler) {
         scheduler->finish();
-        delete scheduler; // Cleanup
+        delete scheduler;
         scheduler = nullptr;
     }
     printInColor("Scheduler stopped.\n", "green");
@@ -496,23 +488,40 @@ void ScreenManager::screenList() {
 
     std::cout << "\n---------------------------------------\n";
     std::cout << "Running processess:\n";
-    // TODO: List down running processes (modify the current implementation below)
-    if (screens.empty()) {
-        printInColor("No active screens.\n", "red");
-    }
-    else {
+    
+    int cnt_running = 0;
+    if (!screens.empty()) {
         for (const auto& screen : screens) {
-             std::cout << std::setw(10) << std::left << screen.first << "   "
-                 << "(" << screens[screen.first].timestamp << ")    "
-                 << "Core: " << std::setw(3) << std::left << screen.second.coreId << "   "
-                 << screen.second.currentLine << " / " << screen.second.totalLines << "   "
-                 << (screen.second.finished ? "Finished" : "Running") << "\n";
+            if (!screen.second.finished) {
+                cnt_running++;
+                std::cout << std::setw(10) << std::left << screen.first << "   "
+                    << "(" << screens[screen.first].timestamp << ")    "
+                    << "Core: " << std::setw(3) << std::left << screen.second.coreId << "   "
+                    << screen.second.currentLine << " / " << screen.second.totalLines << "\n";
+            }
         }
+    }
+    if (cnt_running == 0) {
+        printInColor("No running processes.\n", "red");
     }
 
     std::cout << "\nFinished processess:\n";
-    // TODO: List down finished processes
-    printInColor("To be implemented later.\n", "red");
+
+    int cnt_finished= 0;
+    if(!screens.empty()) {
+        for (const auto& screen : screens) {
+            if (screen.second.finished) {
+                cnt_finished++;
+                std::cout << std::setw(10) << std::left << screen.first << "   "
+                    << "(" << screens[screen.first].timestamp << ")    "
+                    << "Finished" << std::left << "   "
+                    << screen.second.currentLine << " / " << screen.second.totalLines << "\n";
+            }
+        }
+    }
+    if (cnt_finished == 0) {
+        printInColor("No finished processes.\n", "red");
+    }
 
     std::cout << "---------------------------------------\n\n";
 }
