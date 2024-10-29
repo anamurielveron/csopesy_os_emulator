@@ -27,6 +27,23 @@
 // Shortcuts
 typedef std::string String;
 
+template <typename T>
+const T& clamp(const T& v, const T& lo, const T& hi) {
+    return (v < lo) ? lo : (hi < v) ? hi : v;
+}
+
+// Struch Forward Declarations
+struct Config {
+    int num_cpu = 1;
+    std::string scheduler = "fcfs";
+    int quantum_cycles = 1;
+    int batch_process_freq = 1;
+    int min_ins = 1;
+    int max_ins = 1;
+    int delays_per_exec = 0;
+}config;
+
+
 // ******* CLASSES *********************************************************************************
 
 // Class forward declarations
@@ -38,6 +55,7 @@ class Screen;
 class ScreenManager;
 class Scheduler;
 enum class ConsoleType { MainMenu, Screen };
+enum class SchedulerType { FCFS, RR };
 
 // Function prototypes
 void printInColor(const String& text, const String& color);
@@ -86,107 +104,6 @@ public:
         : name(name), totalLines(totalLines), coreId(-1), finished(false) {}
 };
 
-class Scheduler {
-private:
-    std::queue<Screen*> screenQueue;
-    std::mutex queueMutex;
-    std::condition_variable cv;
-    bool finished = false;
-    std::vector<std::thread> cores;
-	int numCores = 4;
-	int nextCore = 0;
-
-    void worker(int coreId) {
-        while (true) {
-            Screen* screen = nullptr;
-
-            {
-                std::unique_lock<std::mutex> lock(queueMutex);
-                cv.wait(lock, [this] {
-                    return finished || !screenQueue.empty();
-                });
-
-				// Exit the thread if finished and no more processes
-                if (finished && screenQueue.empty()) {
-                    return;
-                }
-
-				// Get the next process in the queue if it is assigned to the current core
-                if (nextCore == coreId && !screenQueue.empty()) {
-					screen = screenQueue.front();
-					screenQueue.pop();
-					//update next core
-					nextCore = (nextCore + 1) % numCores;
-				}
-				else {
-					continue;
-				}
-            }
-
-            // Simulate process execution
-            if (screen) {
-                executeProcess(screen, coreId);
-            }
-        }
-    }
-
-    void executeProcess(Screen* screen, int coreId) {
-        screen->coreId = coreId;
-
-        // Simulate executing print commands
-        std::ofstream logFile(screen->name + ".txt");
-
-        for (int i = 0; i < screen->totalLines; ++i) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Simulate work
-            // Get current timestamp
-            time_t now = time(0);
-            tm ltm;
-
-#ifdef _WIN32
-            localtime_s(&ltm, &now);
-#else
-            localtime_r(&now, &ltm);
-#endif
-            char timestamp[25];
-            strftime(timestamp, sizeof(timestamp), "(%m/%d/%Y %I:%M:%S %p)", &ltm);
-
-            // Write to log file
-            logFile << timestamp << " Core:" << coreId << " \"Hello world from " << screen->name << "!\"\n";
-            screen->currentLine++;
-        }
-
-        logFile.close();
-        screen->finished = true;
-    }
-
-public:
-    Scheduler(int numCores) {
-        for (int i = 0; i < numCores; ++i) {
-            cores.emplace_back(&Scheduler::worker, this, i);
-        }
-    }
-
-    ~Scheduler() {
-        finished = true;
-        cv.notify_all();
-        for (auto& core : cores) {
-            core.join();
-        }
-    }
-
-    void addProcess(Screen& screen) {
-        {
-            std::lock_guard<std::mutex> lock(queueMutex);
-            screenQueue.push(&screen);
-        }
-        cv.notify_one();
-    }
-
-    void finish() {
-        finished = true;
-        cv.notify_all();
-    }
-};
 
 
 // Abstract Console
@@ -208,7 +125,10 @@ private:
     ConsoleManager& consoleManager;   // reference to the console manager
     ScreenManager& screenManager;   // reference to the screen manager
     Scheduler* scheduler = nullptr;
-    
+
+
+
+    void loadConfig(const std::string& filename);
     void printTitle();      // prints the main menu title
     void help();            // list all commands for main menu console
     void initialize();      // N/A
@@ -238,6 +158,34 @@ public:
         commandMap["exit"] = [this]() { exitProgram(); };
     };
     void draw() override;   // draws the main menu console
+};
+
+class Scheduler {
+private:
+    std::queue<Screen*> screenQueue;
+    std::mutex queueMutex;
+    std::condition_variable cv;
+    bool finished = false;
+    std::vector<std::thread> cores;
+    int numCores;
+    int nextCore = 0;
+
+    
+
+    SchedulerType schedulerType;
+    int quantumCycles;
+
+    void worker(int coreId);
+    void executeProcessFCFS(Screen* screen, int coreId);
+    void executeProcessRR(Screen* screen, int coreId);
+    
+
+public:
+    const Config& config; // Now Config is fully defined and can be used
+    Scheduler(const Config& config);
+    ~Scheduler();
+    void addProcess(Screen& screen);
+    void finish();
 };
 
 // Screen Console
@@ -310,6 +258,148 @@ void AConsole::handleCommand(const String& input) {
     }
 }
 
+Scheduler::Scheduler(const Config& config)
+    : config(config), finished(false), numCores(config.num_cpu), nextCore(0),
+    schedulerType(config.scheduler == "rr" ? SchedulerType::RR : SchedulerType::FCFS),
+    quantumCycles(config.quantum_cycles) {
+
+    // Set up threads based on the number of CPUs from the config
+    for (int i = 0; i < config.num_cpu; ++i) {
+        cores.emplace_back(&Scheduler::worker, this, i);
+    }
+}
+
+Scheduler::~Scheduler() {
+    finished = true;
+    cv.notify_all();
+    for (auto& core : cores) {
+        core.join();
+    }
+}
+
+
+void Scheduler::worker(int coreId) {
+    while (true) {
+        Screen* screen = nullptr;
+
+        {
+            std::unique_lock<std::mutex> lock(queueMutex);
+            cv.wait(lock, [this] {
+                return finished || !screenQueue.empty();
+                });
+
+            if (finished && screenQueue.empty()) {
+                return;
+            }
+
+            if (nextCore == coreId && !screenQueue.empty()) {
+                screen = screenQueue.front();
+                screenQueue.pop();
+
+                // Update the next core in a round-robin fashion
+                nextCore = (nextCore + 1) % numCores;
+            }
+            else {
+                continue;
+            }
+        }
+
+        if (screen) {
+            if (schedulerType == SchedulerType::FCFS) {
+                executeProcessFCFS(screen, coreId);
+            }
+            else if (schedulerType == SchedulerType::RR) {
+                executeProcessRR(screen, coreId);
+            }
+        }
+    }
+}
+
+// FCFS: Complete execution of each screen process in a single pass
+void Scheduler::executeProcessFCFS(Screen* screen, int coreId) {
+    screen->coreId = coreId;
+    std::ofstream logFile(screen->name + ".txt");
+
+    for (int i = 0; i < screen->totalLines; ++i) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Simulate work
+        // Get timestamp
+        time_t now = time(0);
+        tm ltm;
+
+#ifdef _WIN32
+        localtime_s(&ltm, &now);
+#else
+        localtime_r(&now, &ltm);
+#endif
+        char timestamp[25];
+        strftime(timestamp, sizeof(timestamp), "(%m/%d/%Y %I:%M:%S %p)", &ltm);
+
+        // Write log entry
+        logFile << timestamp << " Core:" << coreId << " \"Hello world from " << screen->name << "!\"\n";
+        screen->currentLine++;
+    }
+
+    logFile.close();
+    screen->finished = true;
+}
+
+// RR: Process each screen with quantum-based execution
+void Scheduler::executeProcessRR(Screen* screen, int coreId) {
+    screen->coreId = coreId;
+    std::ofstream logFile(screen->name + ".txt");
+
+    int executedLines = 0;
+    while (executedLines < screen->totalLines) {
+        int linesToProcess = min(quantumCycles, screen->totalLines - executedLines);
+
+        for (int i = 0; i < linesToProcess; ++i) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Simulate work
+            // Get timestamp
+            time_t now = time(0);
+            tm ltm;
+
+#ifdef _WIN32
+            localtime_s(&ltm, &now);
+#else
+            localtime_r(&now, &ltm);
+#endif
+            char timestamp[25];
+            strftime(timestamp, sizeof(timestamp), "(%m/%d/%Y %I:%M:%S %p)", &ltm);
+
+            // Write log entry
+            logFile << timestamp << " Core:" << coreId << " \"Hello world from " << screen->name << "!\"\n";
+            screen->currentLine++;
+        }
+
+        executedLines += linesToProcess;
+
+        if (executedLines < screen->totalLines) {
+            std::unique_lock<std::mutex> lock(queueMutex);
+            screenQueue.push(screen);  // Requeue the process for the next quantum
+            cv.notify_one();
+            break;  // Yield control to other processes
+        }
+    }
+
+    if (executedLines >= screen->totalLines) {
+        logFile.close();
+        screen->finished = true;
+    }
+}
+
+void Scheduler::addProcess(Screen& screen) {
+    {
+        std::lock_guard<std::mutex> lock(queueMutex);
+        screenQueue.push(&screen);
+    }
+    cv.notify_one(); // Notify a waiting worker thread
+}
+
+void Scheduler::finish() {
+    finished = true;
+    cv.notify_all(); // Notify all threads to finish execution
+}
+
 void MainMenuConsole::printTitle() {
     // open file
     std::ifstream file("..\\WindowPain\\TitleASCII.txt");
@@ -355,8 +445,88 @@ void MainMenuConsole::help() {
     std::cout << "\n";
 }
 
+void MainMenuConsole::loadConfig(const std::string& filename) {
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        throw std::runtime_error("Could not open config file.");
+    }
+
+    std::string parameter;
+
+    while (file >> parameter) {
+        if (parameter == "num-cpu") {
+            int value;
+            file >> value;
+            config.num_cpu = clamp(value, 1, 128);
+        }
+        else if (parameter == "scheduler") {
+            std::string schedulerValue;
+            file >> schedulerValue;
+            if (schedulerValue == "fcfs" || schedulerValue == "rr") {
+                config.scheduler = schedulerValue;
+            }
+            else {
+                throw std::runtime_error("Invalid scheduler value.");
+            }
+        }
+        else if (parameter == "quantum-cycles") {
+            int value;
+            file >> value;
+            config.quantum_cycles = clamp(value, 1, 1 << 7);
+        }
+        else if (parameter == "batch-process-freq") {
+            int value;
+            file >> value;
+            config.batch_process_freq = clamp(value, 1, 1 << 7);
+        }
+        else if (parameter == "min-ins") {
+            int value;
+            file >> value;
+            config.min_ins = clamp(value, 1, 1 << 7);
+        }
+        else if (parameter == "max-ins") {
+            int value;
+            file >> value;
+            config.max_ins = clamp(value, 1, 1 << 7);
+        }
+        else if (parameter == "delays-per-exec") {
+            int value;
+            file >> value;
+            config.delays_per_exec = clamp(value, 0, 1 << 7);
+        }
+        else {
+            std::cerr << "Unknown parameter in config file: " << parameter << std::endl;
+        }
+    }
+
+    file.close();
+}
+
 void MainMenuConsole::initialize() {
-    std::cout << "'initialize' command recognized. Doing something.\n";
+    try {
+        loadConfig("config.txt");
+    }
+    catch (const std::exception& e) {
+        printInColor("Error: " + std::string(e.what()) + "\n", "red");
+        return;
+    }
+
+    std::cout << "Configuration Loaded:\n";
+    std::cout << "Number of CPUs: " << config.num_cpu << "\n";
+    std::cout << "Scheduler: " << config.scheduler << "\n";
+    std::cout << "Quantum Cycles: " << config.quantum_cycles << "\n";
+    std::cout << "Batch Process Frequency: " << config.batch_process_freq << "\n";
+    std::cout << "Minimum Instructions: " << config.min_ins << "\n";
+    std::cout << "Maximum Instructions: " << config.max_ins << "\n";
+    std::cout << "Delays per Exec: " << config.delays_per_exec << "\n";
+
+    if (scheduler) {
+        delete scheduler;
+    }
+    printInColor("Hi.\n", "red");
+    scheduler = new Scheduler(config);
+
+    printInColor("Initialization complete.\n", "green");
 }
 
 void MainMenuConsole::screen() {
@@ -398,7 +568,7 @@ void MainMenuConsole::schedulerTest() {
     printInColor("Scheduler has started.\n\n", "yellow");
 
     // Initialize scheduler with 4 cores
-    scheduler = new Scheduler(4);
+    scheduler = new Scheduler(config);
 
     // Create and add processes
     for (int i = 1; i <= 10; ++i) {
@@ -654,7 +824,7 @@ int main() {
     ConsoleManager consoleManager;
     consoleManager.switchConsole(ConsoleType::MainMenu);
 
-    consoleManager.passCommand("scheduler-test"); //TEMP: pass command "scheduler-test" on run
+    
 
     commandLoop(consoleManager);
 
