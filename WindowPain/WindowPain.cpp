@@ -280,6 +280,8 @@ Scheduler::~Scheduler() {
 
 void Scheduler::worker(int coreId) {
     while (true) {
+        if (finished) return;
+
         Screen* screen = nullptr;
 
         {
@@ -321,6 +323,11 @@ void Scheduler::executeProcessFCFS(Screen* screen, int coreId) {
     std::ofstream logFile(screen->name + ".txt");
 
     for (int i = 0; i < screen->totalLines; ++i) {
+        if (screen->currentLine >= screen->totalLines) { // Extra safety check
+            screen->finished = true;
+            logFile.close();
+            return;
+        }
         std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Simulate work
         // Get timestamp
         time_t now = time(0);
@@ -336,6 +343,7 @@ void Scheduler::executeProcessFCFS(Screen* screen, int coreId) {
 
         // Write log entry
         logFile << timestamp << " Core:" << coreId << " \"Hello world from " << screen->name << "!\"\n";
+        logFile.flush();
         screen->currentLine++;
     }
 
@@ -346,13 +354,18 @@ void Scheduler::executeProcessFCFS(Screen* screen, int coreId) {
 // RR: Process each screen with quantum-based execution
 void Scheduler::executeProcessRR(Screen* screen, int coreId) {
     screen->coreId = coreId;
-    std::ofstream logFile(screen->name + ".txt");
+    std::ofstream logFile(screen->name + ".txt", std::ios::app);
 
     int executedLines = 0;
     while (executedLines < screen->totalLines) {
         int linesToProcess = min(quantumCycles, screen->totalLines - executedLines);
 
         for (int i = 0; i < linesToProcess; ++i) {
+            if (screen->currentLine >= screen->totalLines) { // Extra safety check
+                screen->finished = true;
+                logFile.close();
+                return;
+            }
             std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Simulate work
             // Get timestamp
             time_t now = time(0);
@@ -368,6 +381,7 @@ void Scheduler::executeProcessRR(Screen* screen, int coreId) {
 
             // Write log entry
             logFile << timestamp << " Core:" << coreId << " \"Hello world from " << screen->name << "!\"\n";
+            logFile.flush();
             screen->currentLine++;
         }
 
@@ -567,7 +581,18 @@ void MainMenuConsole::draw() {
 void MainMenuConsole::schedulerTest() {
     printInColor("Scheduler has started.\n\n", "yellow");
 
-    // Initialize scheduler with 4 cores
+    // Clear the log files for all screens (processes) before starting
+    for (int i = 1; i <= 10; ++i) {
+        String screenName = "process" + std::string((i < 10 ? "0" : "") + std::to_string(i));
+        std::ofstream logFile(screenName + ".txt", std::ios::trunc);
+        if (logFile.is_open()) {
+            logFile.close();
+        }
+        else {
+            std::cerr << "Error: Could not clear file " << screenName << ".txt\n";
+        }
+    }
+    // Initialize scheduler with config
     scheduler = new Scheduler(config);
 
     // Create and add processes
