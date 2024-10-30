@@ -16,6 +16,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <vector>
+#include <random>
 
 // Support for other OS
 #ifdef _WIN32
@@ -27,9 +28,12 @@
 // Shortcuts
 typedef std::string String;
 
-template <typename T>
-const T& clamp(const T& v, const T& lo, const T& hi) {
-    return (v < lo) ? lo : (hi < v) ? hi : v;
+template <typename T1, typename T2, typename T3>
+auto clamp(const T1& v, const T2& lo, const T3& hi) -> typename std::common_type<T1, T2, T3>::type {
+    using CommonType = typename std::common_type<T1, T2, T3>::type;
+    return (v < static_cast<CommonType>(lo)) ? static_cast<CommonType>(lo)
+        : (static_cast<CommonType>(hi) < v) ? static_cast<CommonType>(hi)
+        : static_cast<CommonType>(v);
 }
 
 // Struch Forward Declarations
@@ -140,6 +144,8 @@ private:
     void exitProgram();     // exits the program
 
 public:
+    std::atomic<bool> schedulerRunning{ false };
+    std::thread schedulerThread;
     MainMenuConsole(ScreenManager& sm, ConsoleManager& cm) : screenManager(sm), consoleManager(cm) {
         // initializes the command map
         commandMap["help"] = [this]() { help(); };
@@ -486,27 +492,27 @@ void MainMenuConsole::loadConfig(const std::string& filename) {
         else if (parameter == "quantum-cycles") {
             int value;
             file >> value;
-            config.quantum_cycles = clamp(value, 1, 1 << 7);
+            config.quantum_cycles = clamp(value, 1, 4294967296);
         }
         else if (parameter == "batch-process-freq") {
             int value;
             file >> value;
-            config.batch_process_freq = clamp(value, 1, 1 << 7);
+            config.batch_process_freq = clamp(value, 1, 4294967296);
         }
         else if (parameter == "min-ins") {
             int value;
             file >> value;
-            config.min_ins = clamp(value, 1, 1 << 7);
+            config.min_ins = clamp(value, 1, 4294967296);
         }
         else if (parameter == "max-ins") {
             int value;
             file >> value;
-            config.max_ins = clamp(value, 1, 1 << 7);
+            config.max_ins = clamp(value, 1, 4294967296);
         }
         else if (parameter == "delays-per-exec") {
             int value;
             file >> value;
-            config.delays_per_exec = clamp(value, 0, 1 << 7);
+            config.delays_per_exec = clamp(value, 0, 4294967296);
         }
         else {
             std::cerr << "Unknown parameter in config file: " << parameter << std::endl;
@@ -579,37 +585,81 @@ void MainMenuConsole::draw() {
 }
 
 void MainMenuConsole::schedulerTest() {
-    printInColor("Scheduler has started.\n\n", "yellow");
+    // Ensure only one instance of the scheduler runs at a time
+    if (schedulerRunning) {
+        printInColor("Scheduler is already running.\n", "red");
+        return;
+    }
 
-    // Clear the log files for all screens (processes) before starting
-    for (int i = 1; i <= 10; ++i) {
-        String screenName = "process" + std::string((i < 10 ? "0" : "") + std::to_string(i));
-        std::ofstream logFile(screenName + ".txt", std::ios::trunc);
+    printInColor("Scheduler has started.\n\n", "yellow");
+    schedulerRunning = true;
+
+    // Clear all existing log files before starting
+    for (const auto& screenEntry : screenManager.screens) {
+        std::ofstream logFile(screenEntry.first + ".txt", std::ios::trunc);
         if (logFile.is_open()) {
             logFile.close();
         }
         else {
-            std::cerr << "Error: Could not clear file " << screenName << ".txt\n";
+            std::cerr << "Error: Could not clear file " << screenEntry.first << ".txt\n";
         }
     }
-    // Initialize scheduler with config
+
+    // Initialize the scheduler with the configuration
     scheduler = new Scheduler(config);
 
-    // Create and add processes
-    for (int i = 1; i <= 10; ++i) {
-        String screenName = "process" + std::string((i < 10 ? "0" : "") + std::to_string(i));
-        screenManager.screenCreate(screenName);
-        scheduler->addProcess(screenManager.screens[screenName]);
-    }
+    // Create a new thread for the scheduler's background operation
+    schedulerThread = std::thread([this]() {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_int_distribution<> dist(config.min_ins, config.max_ins);
+
+        int cycleCounter = 0;
+
+        // Background scheduler loop
+        while (schedulerRunning) {
+            // Add a new process at intervals defined by batch_process_freq
+            if (cycleCounter % config.batch_process_freq == 0) {
+                String screenName = "process" + std::to_string(cycleCounter / config.batch_process_freq);
+                int instructionCount = dist(gen);
+
+                // Create a new screen (process) and set its instruction count
+                screenManager.screenCreate(screenName);
+                screenManager.screens[screenName].totalLines = instructionCount;
+
+                // Add the new process to the scheduler
+                scheduler->addProcess(screenManager.screens[screenName]);
+            }
+
+            // Apply delay if delays_per_exec is specified
+            if (config.delays_per_exec > 0) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(config.delays_per_exec));
+            }
+
+            cycleCounter++;
+        }
+
+        printInColor("Scheduler background process stopped.\n", "green");
+        });
+
+    // Detach the thread to let it run in the background
+    schedulerThread.detach();
 }
 
 void MainMenuConsole::schedulerStop() {
-    if (scheduler) {
-        scheduler->finish();
-        delete scheduler;
-        scheduler = nullptr;
+    if (schedulerRunning) {
+        // Set the flag to stop the background scheduler loop
+        schedulerRunning = false;
+        if (scheduler) {
+            scheduler->finish();
+            delete scheduler;
+            scheduler = nullptr;
+        }
+        printInColor("Scheduler stopped.\n", "green");
     }
-    printInColor("Scheduler stopped.\n", "green");
+    else {
+        printInColor("Scheduler is not running.\n", "red");
+    }
 }
 
 void ScreenConsole::help() {
