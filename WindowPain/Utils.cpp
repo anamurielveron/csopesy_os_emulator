@@ -1,5 +1,4 @@
 #include "Utils.h"
-
 #include <unordered_map>
 #include <iostream>
 
@@ -8,7 +7,6 @@
 #else
 #include <unistd.h> // For Linux, macOS
 #endif
-
 
 void printInColor(const String& text, const String& color) {
     // Define ANSI escape color codes
