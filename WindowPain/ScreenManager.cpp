@@ -2,14 +2,23 @@
 #include "ConsoleManager.h"
 #include "Screen.h"
 #include "Utils.h"
+#include "Config.h"
 
 #include <iostream>
 #include <iomanip>
 #include <ctime>
+#include <unordered_map>
+#include <unordered_set>
+#include <sstream>
+#include <string>
+#include <algorithm>
 
-ScreenManager::ScreenManager(ConsoleManager& cm) : consoleManager(cm) {}
+using std::max;
+using std::min;
 
-void ScreenManager::screenCreate(const std::string& name) {
+ScreenManager::ScreenManager(ConsoleManager& cm) : consoleManager(cm), currentScreen("") {}
+
+void ScreenManager::screenCreate(const String& name) {
     if (screens.find(name) != screens.end()) {
         printInColor("Screen already exists with this name.\n", "red");
         return;
@@ -34,7 +43,7 @@ void ScreenManager::screenCreate(const std::string& name) {
     currentScreen = name;
 }
 
-void ScreenManager::screenRestore(const std::string& name) {
+void ScreenManager::screenRestore(const String& name) {
     auto it = screens.find(name);
     if (it == screens.end()) {
         printInColor("No screen found with this name.\n", "red");
@@ -49,15 +58,38 @@ void ScreenManager::screenRestore(const std::string& name) {
 }
 
 void ScreenManager::screenList() {
-    std::cout << "\n---------------------------------------\n";
-    std::cout << "Running processess:\n";
+    std::ostringstream output;  // Create a stream to capture output
+
+    std::unordered_set<int> activeCoreIds;
+    std::unordered_map<int, int> coreProcessCount;
+
+    // Active cores counting for cpu utilization
+    for (const auto& screen : screens) {
+        if (!screen.second.finished && screen.second.coreId != -1) {
+            coreProcessCount[screen.second.coreId]++;
+            activeCoreIds.insert(screen.second.coreId);
+        }
+    }
+
+    int activeCores = activeCoreIds.size();
+    int coresAvailable = max(0, config.num_cpu - activeCores);
+    double cpuUtilization = (static_cast<double>(activeCores) / config.num_cpu) * 100;
+
+    // Capture CPU info to both console and file steam use
+    output << "\n---------------------------------------\n";
+    output << "CPU Utilization: " << cpuUtilization << "%" << "\n";
+    output << "Cores Used: " << activeCores << "\n";
+    output << "Cores Available: " << coresAvailable << "\n";
+
+    output << "\n---------------------------------------\n";
+    output << "Running processes:\n";
 
     int cnt_running = 0;
     if (!screens.empty()) {
         for (const auto& screen : screens) {
             if (!screen.second.finished && screen.second.coreId != -1) {
                 cnt_running++;
-                std::cout << std::setw(10) << std::left << screen.first << "   "
+                output << std::setw(10) << std::left << screen.first << "   "
                     << "(" << screens[screen.first].timestamp << ")    "
                     << "Core: " << std::setw(3) << std::left << screen.second.coreId << "   "
                     << screen.second.currentLine << " / " << screen.second.totalLines << "\n";
@@ -65,17 +97,16 @@ void ScreenManager::screenList() {
         }
     }
     if (cnt_running == 0) {
-        printInColor("No running processes.\n", "gray");
+        output << "No running processes.\n";
     }
 
-    std::cout << "\nFinished processess:\n";
-
+    output << "\nFinished processes:\n";
     int cnt_finished = 0;
     if (!screens.empty()) {
         for (const auto& screen : screens) {
             if (screen.second.finished) {
                 cnt_finished++;
-                std::cout << std::setw(10) << std::left << screen.first << "   "
+                output << std::setw(10) << std::left << screen.first << "   "
                     << "(" << screens[screen.first].timestamp << ")    "
                     << "Finished" << std::left << "   "
                     << screen.second.currentLine << " / " << screen.second.totalLines << "\n";
@@ -83,8 +114,14 @@ void ScreenManager::screenList() {
         }
     }
     if (cnt_finished == 0) {
-        printInColor("No finished processes.\n", "gray");
+        output << "No finished processes.\n";
     }
 
-    std::cout << "---------------------------------------\n\n";
+    output << "---------------------------------------\n\n";
+
+    // Print to console
+    std::cout << output.str();
+
+    // Save the output for the reportUtil function
+    lastScreenListOutput = output.str();
 }

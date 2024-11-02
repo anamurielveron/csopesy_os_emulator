@@ -128,6 +128,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AConsole.cpp" />
+    <ClCompile Include="Config.cpp" />
     <ClCompile Include="ConsoleManager.cpp" />
     <ClCompile Include="MainMenuConsole.cpp" />
     <ClCompile Include="Scheduler.cpp" />
@@ -139,6 +140,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AConsole.h" />
+    <ClInclude Include="Config.h" />
     <ClInclude Include="ConsoleManager.h" />
     <ClInclude Include="MainMenuConsole.h" />
     <ClInclude Include="Scheduler.h" />

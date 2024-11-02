@@ -8,22 +8,28 @@
 #include <thread>
 
 class Screen;
+enum class SchedulerType { FCFS, RR };
 
 class Scheduler {
 private:
     std::queue<Screen*> screenQueue;
     std::mutex queueMutex;
     std::condition_variable cv;
-    bool finished;
+    bool finished = false;
     std::vector<std::thread> cores;
     int numCores;
-    int nextCore;
+    int nextCore = 0;
+
+    SchedulerType schedulerType;
+    int quantumCycles;
 
     void worker(int coreId);
-    void executeProcess(Screen* screen, int coreId);
+    void executeProcessFCFS(Screen* screen, int coreId);
+    void executeProcessRR(Screen* screen, int coreId);
 
 public:
-    Scheduler(int numCores);
+    const Config& config; // Now Config is fully defined and can be used
+    Scheduler(const Config& config);
     ~Scheduler();
     void addProcess(Screen& screen);
     void finish();

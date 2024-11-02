@@ -3,7 +3,7 @@
 
 #include <sstream>
 
-void AConsole::handleCommand(const std::string& input) {
+void AConsole::handleCommand(const String& input) {
     // check first command map
     auto it = commandMap.find(input);
     if (it != commandMap.end()) {

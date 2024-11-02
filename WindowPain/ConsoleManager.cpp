@@ -26,6 +26,6 @@ void ConsoleManager::switchConsole(ConsoleType consoleType) {
     currentConsole->draw();
 }
 
-void ConsoleManager::passCommand(const std::string& command) {
+void ConsoleManager::passCommand(const String& command) {
     currentConsole->handleCommand(command);
 }
