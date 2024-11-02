@@ -5,6 +5,7 @@
 #include <fstream>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <iomanip>
 #include <iostream>
 #include <functional> // std::function
@@ -36,7 +37,7 @@ auto clamp(const T1& v, const T2& lo, const T3& hi) -> typename std::common_type
         : static_cast<CommonType>(v);
 }
 
-// Struch Forward Declarations
+// Struch Forward Declarations / Global Variables
 struct Config {
     int num_cpu = 1;
     std::string scheduler = "fcfs";
@@ -46,6 +47,9 @@ struct Config {
     int max_ins = 1;
     int delays_per_exec = 0;
 }config;
+std::atomic<int> activeCores = 0;
+
+
 
 
 // ******* CLASSES *********************************************************************************
@@ -85,6 +89,7 @@ private:
     ConsoleManager& consoleManager;             // reference to the console manager
 public:
     std::unordered_map<String, Screen> screens; // list of screens
+    std::string lastScreenListOutput;
     String currentScreen = "";                  // current screen displayed
     ScreenManager(ConsoleManager& cm) : consoleManager(cm) {};
     void screenCreate(const String& name);     // create screen
@@ -300,12 +305,11 @@ void Scheduler::worker(int coreId) {
                 return;
             }
 
-            if (nextCore == coreId && !screenQueue.empty()) {
+            if (!screenQueue.empty()) {
                 screen = screenQueue.front();
                 screenQueue.pop();
-
-                // Update the next core in a round-robin fashion
-                nextCore = (nextCore + 1) % numCores;
+                screen->coreId = coreId;
+                ++activeCores; // Increment active cores count
             }
             else {
                 continue;
@@ -319,11 +323,12 @@ void Scheduler::worker(int coreId) {
             else if (schedulerType == SchedulerType::RR) {
                 executeProcessRR(screen, coreId);
             }
+            --activeCores;
         }
     }
 }
 
-// FCFS: Complete execution of each screen process in a single pass
+// FCFS: Complete execution of each screen process before moving to another process
 void Scheduler::executeProcessFCFS(Screen* screen, int coreId) {
     screen->coreId = coreId;
     std::ofstream logFile(screen->name + ".txt");
@@ -410,9 +415,11 @@ void Scheduler::executeProcessRR(Screen* screen, int coreId) {
 void Scheduler::addProcess(Screen& screen) {
     {
         std::lock_guard<std::mutex> lock(queueMutex);
+        screen.coreId = nextCore;
         screenQueue.push(&screen);
+        nextCore = (nextCore + 1) % numCores;
     }
-    cv.notify_one(); // Notify a waiting worker thread
+    cv.notify_one();
 }
 
 void Scheduler::finish() {
@@ -492,27 +499,27 @@ void MainMenuConsole::loadConfig(const std::string& filename) {
         else if (parameter == "quantum-cycles") {
             int value;
             file >> value;
-            config.quantum_cycles = clamp(value, 1, 4294967296);
+            config.quantum_cycles = clamp(value, 1, 4294967296); // [1, 2^32]
         }
         else if (parameter == "batch-process-freq") {
             int value;
             file >> value;
-            config.batch_process_freq = clamp(value, 1, 4294967296);
+            config.batch_process_freq = clamp(value, 1, 4294967296); // [1, 2^32
         }
         else if (parameter == "min-ins") {
             int value;
             file >> value;
-            config.min_ins = clamp(value, 1, 4294967296);
+            config.min_ins = clamp(value, 1, 4294967296); // [1, 2^32
         }
         else if (parameter == "max-ins") {
             int value;
             file >> value;
-            config.max_ins = clamp(value, 1, 4294967296);
+            config.max_ins = clamp(value, 1, 4294967296); // [1, 2^32
         }
         else if (parameter == "delays-per-exec") {
             int value;
             file >> value;
-            config.delays_per_exec = clamp(value, 0, 4294967296);
+            config.delays_per_exec = clamp(value, 0, 4294967296); // [0, 2^32
         }
         else {
             std::cerr << "Unknown parameter in config file: " << parameter << std::endl;
@@ -543,7 +550,6 @@ void MainMenuConsole::initialize() {
     if (scheduler) {
         delete scheduler;
     }
-    printInColor("Hi.\n", "red");
     scheduler = new Scheduler(config);
 
     printInColor("Initialization complete.\n", "green");
@@ -562,7 +568,15 @@ void MainMenuConsole::screen() {
 }
 
 void MainMenuConsole::reportUtil() {
-    std::cout << "'report-util' command recognized. Doing something.\n";
+     std::ofstream logFile("csopesy_log.txt");
+    if (logFile.is_open()) {
+        logFile << screenManager.lastScreenListOutput;  // Access and write last screen list output
+        logFile.close();
+        std::cout << "Report generated at csopesy_log.txt\n";
+    }
+    else {
+        std::cerr << "Error: Could not open csopesy_log.txt for writing.\n";
+    }
 }
 
 void MainMenuConsole::clear() {
@@ -594,7 +608,7 @@ void MainMenuConsole::schedulerTest() {
     printInColor("Scheduler has started.\n\n", "yellow");
     schedulerRunning = true;
 
-    // Clear all existing log files before starting
+    // Clear all existing log files before starting (Just in case there are files with the exact name process)
     for (const auto& screenEntry : screenManager.screens) {
         std::ofstream logFile(screenEntry.first + ".txt", std::ios::trunc);
         if (logFile.is_open()) {
@@ -605,10 +619,10 @@ void MainMenuConsole::schedulerTest() {
         }
     }
 
-    // Initialize the scheduler with the configuration
+    // Initialize the scheduler with the config
     scheduler = new Scheduler(config);
 
-    // Create a new thread for the scheduler's background operation
+    // Scheduler's background operation
     schedulerThread = std::thread([this]() {
         std::random_device rd;
         std::mt19937 gen(rd());
@@ -631,7 +645,7 @@ void MainMenuConsole::schedulerTest() {
                 scheduler->addProcess(screenManager.screens[screenName]);
             }
 
-            // Apply delay if delays_per_exec is specified
+            // Apply delay
             if (config.delays_per_exec > 0) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(config.delays_per_exec));
             }
@@ -648,7 +662,7 @@ void MainMenuConsole::schedulerTest() {
 
 void MainMenuConsole::schedulerStop() {
     if (schedulerRunning) {
-        // Set the flag to stop the background scheduler loop
+        // Stop the background scheduler loop
         schedulerRunning = false;
         if (scheduler) {
             scheduler->finish();
@@ -744,16 +758,38 @@ void ScreenManager::screenRestore(const String& name) {
 }
 
 void ScreenManager::screenList() {
+    std::ostringstream output;  // Create a stream to capture output
 
-    std::cout << "\n---------------------------------------\n";
-    std::cout << "Running processess:\n";
-    
+    std::unordered_set<int> activeCoreIds;
+    std::unordered_map<int, int> coreProcessCount;
+
+    // Active cores counting for cpu utilization
+    for (const auto& screen : screens) {
+        if (!screen.second.finished && screen.second.coreId != -1) {
+            coreProcessCount[screen.second.coreId]++;
+            activeCoreIds.insert(screen.second.coreId);
+        }
+    }
+
+    int activeCores = activeCoreIds.size();
+    int coresAvailable = max(0, config.num_cpu - activeCores);
+    double cpuUtilization = (static_cast<double>(activeCores) / config.num_cpu) * 100;
+
+    // Capture CPU info to both console and file steam use
+    output << "\n---------------------------------------\n";
+    output << "CPU Utilization: " << cpuUtilization << "%" << "\n";
+    output << "Cores Used: " << activeCores << "\n";
+    output << "Cores Available: " << coresAvailable << "\n";
+
+    output << "\n---------------------------------------\n";
+    output << "Running processes:\n";
+
     int cnt_running = 0;
     if (!screens.empty()) {
         for (const auto& screen : screens) {
             if (!screen.second.finished && screen.second.coreId != -1) {
                 cnt_running++;
-                std::cout << std::setw(10) << std::left << screen.first << "   "
+                output << std::setw(10) << std::left << screen.first << "   "
                     << "(" << screens[screen.first].timestamp << ")    "
                     << "Core: " << std::setw(3) << std::left << screen.second.coreId << "   "
                     << screen.second.currentLine << " / " << screen.second.totalLines << "\n";
@@ -761,17 +797,16 @@ void ScreenManager::screenList() {
         }
     }
     if (cnt_running == 0) {
-        printInColor("No running processes.\n", "gray");
+        output << "No running processes.\n";
     }
 
-    std::cout << "\nFinished processess:\n";
-
-    int cnt_finished= 0;
-    if(!screens.empty()) {
+    output << "\nFinished processes:\n";
+    int cnt_finished = 0;
+    if (!screens.empty()) {
         for (const auto& screen : screens) {
             if (screen.second.finished) {
                 cnt_finished++;
-                std::cout << std::setw(10) << std::left << screen.first << "   "
+                output << std::setw(10) << std::left << screen.first << "   "
                     << "(" << screens[screen.first].timestamp << ")    "
                     << "Finished" << std::left << "   "
                     << screen.second.currentLine << " / " << screen.second.totalLines << "\n";
@@ -779,10 +814,16 @@ void ScreenManager::screenList() {
         }
     }
     if (cnt_finished == 0) {
-        printInColor("No finished processes.\n", "gray");
+        output << "No finished processes.\n";
     }
 
-    std::cout << "---------------------------------------\n\n";
+    output << "---------------------------------------\n\n";
+
+    // Print to console
+    std::cout << output.str();
+
+    // Save the output for the reportUtil function
+    lastScreenListOutput = output.str();
 }
 
 void ConsoleManager::switchConsole(ConsoleType consoleType) {
