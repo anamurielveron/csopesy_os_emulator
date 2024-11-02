@@ -127,7 +127,27 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AConsole.cpp" />
+    <ClCompile Include="Config.cpp" />
+    <ClCompile Include="ConsoleManager.cpp" />
+    <ClCompile Include="MainMenuConsole.cpp" />
+    <ClCompile Include="Scheduler.cpp" />
+    <ClCompile Include="Screen.cpp" />
+    <ClCompile Include="ScreenConsole.cpp" />
+    <ClCompile Include="ScreenManager.cpp" />
+    <ClCompile Include="Utils.cpp" />
     <ClCompile Include="WindowPain.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="AConsole.h" />
+    <ClInclude Include="Config.h" />
+    <ClInclude Include="ConsoleManager.h" />
+    <ClInclude Include="MainMenuConsole.h" />
+    <ClInclude Include="Scheduler.h" />
+    <ClInclude Include="Screen.h" />
+    <ClInclude Include="ScreenConsole.h" />
+    <ClInclude Include="ScreenManager.h" />
+    <ClInclude Include="Utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
