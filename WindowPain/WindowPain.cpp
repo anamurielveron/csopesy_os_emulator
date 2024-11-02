@@ -156,10 +156,7 @@ public:
         commandMap["help"] = [this]() { help(); };
         commandMap["initialize"] = [this]() { initialize(); };
         commandMap["screen"] = [this]() { screen(); };
-        commandMapWithArgs["screen -s"] = [this](const std::string& args) { 
-            screenManager.screenCreate(args);
-            consoleManager.switchConsole(ConsoleType::Screen); 
-        };
+        commandMapWithArgs["screen -s"] = [this](const std::string& args) { screenManager.screenCreate(args); };
         commandMapWithArgs["screen -r"] = [this](const std::string& args) { screenManager.screenRestore(args); };
         commandMap["screen -ls"] = [this]() { screenManager.screenList(); };
         commandMap["scheduler-test"] = [this]() { schedulerTest(); };
@@ -703,7 +700,18 @@ void ScreenConsole::exitScreen() {
 }
 
 void ScreenConsole::processSMI() {
-    // TODO: Implement process-smi command
+    String currentScreenString = screenManager.currentScreen;
+    Screen currentScreen = screenManager.screens[currentScreenString];
+
+    std::cout << "\nScreen Name: " << currentScreen.name << "\n";
+    std::cout << "Timestamp: " << currentScreen.timestamp << "\n";
+    std::cout << "Current Line: " << currentScreen.currentLine << " / " << currentScreen.totalLines << "\n";
+
+    if (currentScreen.currentLine >= currentScreen.totalLines) {
+        printInColor("This process has finished!", "green");
+    }
+
+    std::cout << "\n";
 }
 
 void ScreenConsole::draw() {
@@ -712,11 +720,7 @@ void ScreenConsole::draw() {
 #else
     system("clear");
 #endif
-    String currentScreen = screenManager.currentScreen;
-
-    std::cout << "Screen Name: " << screenManager.screens[currentScreen].name << "\n";
-    std::cout << "Current Line: " << screenManager.screens[currentScreen].currentLine << " / " << screenManager.screens[currentScreen].totalLines << "\n";
-    std::cout << "Timestamp: " << screenManager.screens[currentScreen].timestamp << "\n\n";
+    processSMI();
 }
 
 void ScreenManager::screenCreate(const String& name) {
@@ -742,6 +746,9 @@ void ScreenManager::screenCreate(const String& name) {
     // Add to map and update current screen
     screens[name] = newScreen;
     currentScreen = name;
+
+    // Switch to screen console
+    consoleManager.switchConsole(ConsoleType::Screen);
 }
 
 void ScreenManager::screenRestore(const String& name) {
