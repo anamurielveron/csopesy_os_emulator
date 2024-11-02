@@ -1,6 +1,7 @@
 #ifndef SCHEDULER_H
 #define SCHEDULER_H
 
+#include "Config.h"
 #include <queue>
 #include <mutex>
 #include <condition_variable>
