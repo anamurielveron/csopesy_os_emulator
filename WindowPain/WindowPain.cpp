@@ -135,8 +135,6 @@ private:
     ScreenManager& screenManager;   // reference to the screen manager
     Scheduler* scheduler = nullptr;
 
-
-
     void loadConfig(const std::string& filename);
     void printTitle();      // prints the main menu title
     void help();            // list all commands for main menu console
@@ -156,7 +154,12 @@ public:
         commandMap["help"] = [this]() { help(); };
         commandMap["initialize"] = [this]() { initialize(); };
         commandMap["screen"] = [this]() { screen(); };
-        commandMapWithArgs["screen -s"] = [this](const std::string& args) { screenManager.screenCreate(args); };
+        commandMapWithArgs["screen -s"] = [this](const std::string& args) {
+            screenManager.screenCreate(args);
+            if (screenManager.currentScreen != "") {
+                consoleManager.switchConsole(ConsoleType::Screen);
+            }
+        };
         commandMapWithArgs["screen -r"] = [this](const std::string& args) { screenManager.screenRestore(args); };
         commandMap["screen -ls"] = [this]() { screenManager.screenList(); };
         commandMap["scheduler-test"] = [this]() { schedulerTest(); };
@@ -746,9 +749,6 @@ void ScreenManager::screenCreate(const String& name) {
     // Add to map and update current screen
     screens[name] = newScreen;
     currentScreen = name;
-
-    // Switch to screen console
-    consoleManager.switchConsole(ConsoleType::Screen);
 }
 
 void ScreenManager::screenRestore(const String& name) {
