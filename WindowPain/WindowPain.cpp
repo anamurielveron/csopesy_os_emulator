@@ -448,8 +448,18 @@ void MainMenuConsole::printTitle() {
 
     // print subtitle
     std::cout << "\n";
-    printInColor("Welcome to our CSOPESY commandline: WindowPain!", "yellow");
-    std::cout << "\n\n";
+    printInColor("-------------------------------------------------------\n", "yellow");
+    printInColor("Welcome to our CSOPESY commandline: WindowPain!\n", "yellow");
+    std::cout << "\n";
+    printInColor("Developers:\n", "yellow");
+    printInColor("Bacosa, Gabriel Luis\n", "yellow");
+    printInColor("De Leon, Allan David\n", "yellow");
+    printInColor("Mojica, Harold\n", "yellow");
+    printInColor("Veron, Ana Muriel\n", "yellow");
+    std::cout << "\n";
+    printInColor("Last updated: 11/03/2024\n", "yellow");
+    printInColor("-------------------------------------------------------\n", "yellow");
+    std::cout << "\n";
 }
 
 void MainMenuConsole::help() {
