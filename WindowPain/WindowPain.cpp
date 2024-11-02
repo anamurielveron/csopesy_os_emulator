@@ -205,18 +205,15 @@ private:
     ConsoleManager& consoleManager; // reference to the console manager
     ScreenManager& screenManager;   // reference to the screen manager
     void help();            // list all commands for screen console
-    void screen();          // lists the commands for screen
     void clear();           // redraws the screen console
     void exitScreen();      // goes back to main menu console
+    void processSMI();      // prints information of the screen process
 public:
     ScreenConsole(ScreenManager& sm, ConsoleManager& cm) : screenManager(sm), consoleManager(cm) {
         commandMap["help"] = [this]() { help(); };
-        commandMap["screen"] = [this]() { screen(); };
-        commandMapWithArgs["screen -s"] = [this](const std::string& args) { screenManager.screenCreate(args); };
-        commandMapWithArgs["screen -r"] = [this](const std::string& args) { screenManager.screenRestore(args); };
-        commandMap["screen -ls"] = [this]() { screenManager.screenList(); };
         commandMap["clear"] = [this]() { clear(); };
         commandMap["exit"] = [this]() { exitScreen(); };
+        commandMap["process-smi"] = [this]() { processSMI(); };
     };
     void draw() override;   // draws the screen console
 };
@@ -562,7 +559,7 @@ void MainMenuConsole::initialize() {
     }
     scheduler = new Scheduler(config);
 
-    printInColor("Initialization complete.\n", "green");
+    printInColor("Initialization complete.\n\n", "green");
 }
 
 void MainMenuConsole::screen() {
@@ -688,22 +685,12 @@ void MainMenuConsole::schedulerStop() {
 
 void ScreenConsole::help() {
     std::cout << "\nAvailable commands:\n";
-    printInColor("screen", "green");
+    printInColor("process-smi", "green");
     std::cout << "\n";
     printInColor("clear", "green");
     std::cout << "\n";
     printInColor("exit", "green");
     std::cout << "\n\n";
-}
-
-void ScreenConsole::screen() {
-    std::cout << "\n'screen' commands:\n";
-    printInColor("screen -s <name>", "green");
-    std::cout << "\t(create a new screen)\n";
-    printInColor("screen -r <name>", "green");
-    std::cout << "\t(restore an existing screen)\n";
-    printInColor("screen -ls", "green");
-    std::cout << "\t\t(list all screens)\n\n";
 }
 
 void ScreenConsole::clear() {
@@ -713,6 +700,10 @@ void ScreenConsole::clear() {
 void ScreenConsole::exitScreen() {
     screenManager.currentScreen = "";
     consoleManager.switchConsole(ConsoleType::MainMenu);
+}
+
+void ScreenConsole::processSMI() {
+    // TODO: Implement process-smi command
 }
 
 void ScreenConsole::draw() {
