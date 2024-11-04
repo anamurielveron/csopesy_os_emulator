@@ -235,7 +235,17 @@ void ScreenManager::loadConfig(const String& filename) {
         }
         else if (parameter == "scheduler") {
             String schedulerValue;
-            file >> schedulerValue;
+            file >> std::ws;
+
+            char firstChar = file.peek();
+            if (firstChar == '"') {
+                file.get();
+                std::getline(file, schedulerValue, '"'); 
+            }
+            else {
+                file >> schedulerValue;
+            }
+
             if (schedulerValue == "fcfs" || schedulerValue == "rr") {
                 config.scheduler = schedulerValue;
             }
