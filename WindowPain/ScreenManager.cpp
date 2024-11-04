@@ -19,7 +19,7 @@
 using std::max;
 using std::min;
 
-ScreenManager::ScreenManager(ConsoleManager& cm) : consoleManager(cm), currentScreen(""), scheduler(nullptr), schedulerRunning(false) {}
+ScreenManager::ScreenManager(ConsoleManager& cm) : consoleManager(cm), currentScreen(""), scheduler(nullptr), schedulerRunning(false), testRunning(false) {}
 
 void ScreenManager::screenCreate(const String& name, const String &type) {
     if (screens.find(name) != screens.end()) {
@@ -44,6 +44,16 @@ void ScreenManager::screenCreate(const String& name, const String &type) {
     // Add to map and update current screen
     screens[name] = newScreen;
     if (type == "screenCreate") {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_int_distribution<> dist(config.min_ins, config.max_ins);
+
+        int instructionCount = dist(gen);
+        screens[name].totalLines = instructionCount;
+
+        // Add the new process to the scheduler
+        scheduler->addProcess(screens[name]);
+
         currentScreen = name;
     }
 }
@@ -141,13 +151,13 @@ void ScreenManager::screenList(const String& type) {
 
 void ScreenManager::schedulerTest() {
     // Ensure only one instance of the scheduler runs at a time
-    if (schedulerRunning) {
-        printInColor("Scheduler is already running.\n\n", "red");
+    if (testRunning) {
+        printInColor("Scheduler-test is already running.\n\n", "red");
         return;
     }
 
-    printInColor("Scheduler has started.\n\n", "yellow");
-    schedulerRunning = true;
+    printInColor("Scheduler-test has started.\n\n", "yellow");
+    testRunning = true;
 
     // Clear all existing log files before starting (Just in case there are files with the exact name process)
     for (const auto& screenEntry : screens) {
@@ -163,11 +173,7 @@ void ScreenManager::schedulerTest() {
     // Delete all previous processes
     screens.clear();
 
-    // Initialize the scheduler with the config
-    scheduler = new Scheduler(config);
-
-    // Scheduler's background operation
-    schedulerThread = std::thread([this]() {
+    std::thread processGeneratorThread([this]() {
         std::random_device rd;
         std::mt19937 gen(rd());
         std::uniform_int_distribution<> dist(config.min_ins, config.max_ins);
@@ -175,7 +181,7 @@ void ScreenManager::schedulerTest() {
         int cycleCounter = 0;
 
         // Background scheduler loop
-        while (schedulerRunning) {
+        while (testRunning) {
             // Add a new process at intervals defined by batch_process_freq
             if (cycleCounter % config.batch_process_freq == 0) {
                 String screenName = "process" + std::to_string(cycleCounter / config.batch_process_freq);
@@ -197,25 +203,20 @@ void ScreenManager::schedulerTest() {
             cycleCounter++;
         }
 
-        printInColor("Scheduler background process stopped.\n\n", "yellow");
-        });
+        printInColor("Scheduler-test stopped.\n\n", "yellow");
+    });
 
     // Detach the thread to let it run in the background
-    schedulerThread.detach();
+    processGeneratorThread.detach();
 }
 
 void ScreenManager::schedulerStop() {
-    if (schedulerRunning) {
+    if (testRunning) {
         // Stop the background scheduler loop
-        schedulerRunning = false;
-        if (scheduler) {
-            scheduler->finish();
-            delete scheduler;
-            scheduler = nullptr;
-        }
+        testRunning = false;
     }
     else {
-        printInColor("Scheduler is not running.\n\n", "red");
+        printInColor("Scheduler-test is not running.\n\n", "red");
     }
 }
 
@@ -317,5 +318,15 @@ void ScreenManager::initialize() {
 
     scheduler = new Scheduler(config);
 
+    // Start the scheduler thread
+    schedulerRunning = true;
+    schedulerThread = std::thread([this]() {
+        while (schedulerRunning) {
+            // Scheduler background tasks go here, if any
+            std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Polling delay
+        }
+        });
+
+    schedulerThread.detach();
     printInColor("Initialization complete.\n\n", "green");
 }
