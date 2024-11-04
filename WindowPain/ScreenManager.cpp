@@ -21,7 +21,7 @@ ScreenManager::ScreenManager(ConsoleManager& cm) : consoleManager(cm), currentSc
 
 void ScreenManager::screenCreate(const String& name) {
     if (screens.find(name) != screens.end()) {
-        printInColor("Screen already exists with this name.\n", "red");
+        printInColor("Screen already exists with this name.\n\n", "red");
         return;
     }
 
@@ -47,7 +47,7 @@ void ScreenManager::screenCreate(const String& name) {
 void ScreenManager::screenRestore(const String& name) {
     auto it = screens.find(name);
     if (it == screens.end()) {
-        printInColor("No screen found with this name.\n", "red");
+        printInColor("No screen found with this name.\n\n", "red");
         return;
     }
 
