@@ -103,7 +103,7 @@ void ScreenManager::screenList(const String& type) {
     int cnt_running = 0;
     if (!screens.empty()) {
         for (const auto& screen : screens) {
-            if (!screen.second.finished && screen.second.coreId != -1) {
+            if (!screen.second.finished && screen.second.currentLine > 0) {
                 cnt_running++;
                 output << std::setw(10) << std::left << screen.first << "   "
                     << "(" << screens[screen.first].timestamp << ")    "
@@ -197,8 +197,8 @@ void ScreenManager::schedulerTest() {
             }
 
             // Apply delay
-            if (config.delays_per_exec > 0) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(config.delays_per_exec));
+            if (config.delays_per_exec >= 0) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(config.delays_per_exec + 1));
             }
 
             cycleCounter++;
