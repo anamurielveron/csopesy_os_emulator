@@ -247,7 +247,7 @@ void MainMenuConsole::schedulerTest() {
             cycleCounter++;
         }
 
-        printInColor("Scheduler background process stopped.\n", "green");
+        printInColor("Scheduler background process stopped.\n\n", "yellow");
         });
 
     // Detach the thread to let it run in the background
@@ -263,10 +263,9 @@ void MainMenuConsole::schedulerStop() {
             delete scheduler;
             scheduler = nullptr;
         }
-        printInColor("Scheduler stopped.\n\n", "green");
     }
     else {
-        printInColor("Scheduler is not running.\n", "red");
+        printInColor("Scheduler is not running.\n\n", "red");
     }
 }
 
