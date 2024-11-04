@@ -38,24 +38,19 @@ void commandLoop(ConsoleManager& console) {
             else if (input == "help") {
                 std::cout << "\n";
                 std::cout << "Available commands:\n";
-                printInColor("initialize", "green");
+                printInColor("initialize\n", "green");
+                printInColor("clear\n", "green");
+                printInColor("exit\n", "green");
                 std::cout << "\n";
-                printInColor("screen", "red");
-                std::cout << "\n";
-                printInColor("scheduler-test", "red");
-                std::cout << "\n";
-                printInColor("scheduler-stop", "red");
-                std::cout << "\n";
-                printInColor("report-util", "red");
-                std::cout << "\n";
-                printInColor("clear", "green");
-                std::cout << "\n";
-                printInColor("exit", "green");
-                std::cout << "\n";
+                std::cout << "Restricted commands:\n";
+                printInColor("screen\n", "red");
+                printInColor("scheduler-test\n", "red");
+                printInColor("scheduler-stop\n", "red");
+                printInColor("report-util\n", "red");
                 std::cout << "\n";
             }
             else {
-                printInColor("Other commands are disabled until initialization. Type 'help' for available commands.\n\n", "red");
+                printInColor("Other commands are restricted until initialization. Type 'help' for available commands.\n\n", "red");
             }
         }
     }
