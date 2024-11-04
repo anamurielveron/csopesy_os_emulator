@@ -53,8 +53,9 @@ void ScreenManager::screenCreate(const String& name, const String &type) {
 
         // Add the new process to the scheduler
         scheduler->addProcess(screens[name]);
-
-        currentScreen = name;
+        
+        //currentScreen = name;
+        printInColor("Process \"" + name + "\" created successfully.\n\n", "green");
     }
 }
 
