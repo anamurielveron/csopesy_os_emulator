@@ -160,6 +160,9 @@ void ScreenManager::schedulerTest() {
         }
     }
 
+    // Delete all previous processes
+    screens.clear();
+
     // Initialize the scheduler with the config
     scheduler = new Scheduler(config);
 
@@ -274,6 +277,16 @@ void ScreenManager::loadConfig(const String& filename) {
 }
 
 void ScreenManager::initialize() {
+
+    if (scheduler) {
+        // Delete the previous scheduler and all previous processes
+        schedulerRunning = false;
+        scheduler->finish();
+        delete scheduler;
+        scheduler = nullptr;
+        screens.clear();
+    }
+
     try {
         loadConfig("config.txt");
     }
@@ -292,9 +305,6 @@ void ScreenManager::initialize() {
     std::cout << "Maximum Instructions: " << config.max_ins << "\n";
     std::cout << "Delays per Exec: " << config.delays_per_exec << "\n";
 
-    if (scheduler) {
-        delete scheduler;
-    }
     scheduler = new Scheduler(config);
 
     printInColor("Initialization complete.\n\n", "green");
