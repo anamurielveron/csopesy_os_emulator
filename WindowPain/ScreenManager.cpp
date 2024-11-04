@@ -273,7 +273,7 @@ void ScreenManager::loadConfig(const String& filename) {
             file >> value;
             config.max_ins = clamp(value, 1, 4294967296); // [1, 2^32
         }
-        else if (parameter == "delays-per-exec") {
+        else if (parameter == "delay-per-exec") {
             int value;
             file >> value;
             config.delays_per_exec = clamp(value, 0, 4294967296); // [0, 2^32
