@@ -22,7 +22,7 @@ MainMenuConsole::MainMenuConsole(ScreenManager& sm, ConsoleManager& cm)
         }
     };
     commandMapWithArgs["screen -r"] = [this](const String& args) { screenManager.screenRestore(args); };
-    commandMap["screen -ls"] = [this]() { screenManager.screenList(); };
+    commandMap["screen -ls"] = [this]() { screenManager.screenList("screenList"); };
     commandMap["scheduler-test"] = [this]() { schedulerTest(); };
     commandMap["scheduler-stop"] = [this]() { schedulerStop(); };
     commandMap["report-util"] = [this]() { reportUtil(); };
@@ -189,15 +189,7 @@ void MainMenuConsole::screen() {
 }
 
 void MainMenuConsole::reportUtil() {
-    std::ofstream logFile("csopesy_log.txt");
-    if (logFile.is_open()) {
-        logFile << screenManager.lastScreenListOutput;  // Access and write last screen list output
-        logFile.close();
-        std::cout << "Report generated at csopesy_log.txt\n";
-    }
-    else {
-        std::cerr << "Error: Could not open csopesy_log.txt for writing.\n";
-    }
+    screenManager.screenList("reportUtil");
 }
 
 void MainMenuConsole::schedulerTest() {
@@ -271,7 +263,7 @@ void MainMenuConsole::schedulerStop() {
             delete scheduler;
             scheduler = nullptr;
         }
-        printInColor("Scheduler stopped.\n", "green");
+        printInColor("Scheduler stopped.\n\n", "green");
     }
     else {
         printInColor("Scheduler is not running.\n", "red");

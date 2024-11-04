@@ -5,6 +5,7 @@
 #include "Config.h"
 
 #include <iostream>
+#include <fstream>
 #include <iomanip>
 #include <ctime>
 #include <unordered_map>
@@ -57,7 +58,7 @@ void ScreenManager::screenRestore(const String& name) {
     consoleManager.switchConsole(ConsoleType::Screen);
 }
 
-void ScreenManager::screenList() {
+void ScreenManager::screenList(const String& type) {
     std::ostringstream output;  // Create a stream to capture output
 
     std::unordered_set<int> activeCoreIds;
@@ -119,9 +120,17 @@ void ScreenManager::screenList() {
 
     output << "---------------------------------------\n\n";
 
-    // Print to console
-    std::cout << output.str();
-
-    // Save the output for the reportUtil function
-    lastScreenListOutput = output.str();
+    if (type == "screenList") {
+        std::cout << output.str();
+    } else if (type == "reportUtil") {
+        std::ofstream logFile("csopesy_log.txt");
+        if (logFile.is_open()) {
+            logFile << output.str();
+            logFile.close();
+            printInColor("Report generated at csopesy_log.txt\n\n", "green");
+        }
+        else {
+            printInColor("Error: Could not open csopesy_log.txt for writing.\n\n", "red");
+        }
+    }
 }

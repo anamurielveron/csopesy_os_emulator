@@ -15,12 +15,11 @@ private:
     ConsoleManager& consoleManager;             // reference to the console manager
 public:
     std::unordered_map<String, Screen> screens; // list of screens
-    String lastScreenListOutput;
     String currentScreen;                  // current screen displayed
     ScreenManager(ConsoleManager& cm);
     void screenCreate(const String& name);     // create screen
     void screenRestore(const String& name);    // inspect screen
-    void screenList();                         // display screen list
+    void screenList(const String& type);              // display screen list
 };
 
 #endif // SCREENMANAGER_H
