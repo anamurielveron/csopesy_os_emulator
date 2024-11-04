@@ -184,8 +184,8 @@ void ScreenManager::schedulerTest() {
         // Background scheduler loop
         while (testRunning) {
             // Add a new process at intervals defined by batch_process_freq
-            if (cycleCounter % config.batch_process_freq == 0) {
-                String screenName = "process" + std::to_string(cycleCounter / config.batch_process_freq);
+            if (cycleCounter % (config.batch_process_freq * 40) == 0) {
+                String screenName = "process" + std::to_string((cycleCounter / config.batch_process_freq) / 40);
                 int instructionCount = dist(gen);
 
                 // Create a new screen (process) and set its instruction count
@@ -203,7 +203,7 @@ void ScreenManager::schedulerTest() {
 
             cycleCounter++;
         }
-    });
+     });
 
     // Detach the thread to let it run in the background
     processGeneratorThread.detach();

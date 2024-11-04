@@ -80,7 +80,7 @@ void Scheduler::executeProcessFCFS(Screen* screen, int coreId) {
             logFile.close();
             return;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Simulate work
+        std::this_thread::sleep_for(std::chrono::milliseconds(50)); // Simulate work
         // Get timestamp
         time_t now = time(0);
         tm ltm;
@@ -118,7 +118,7 @@ void Scheduler::executeProcessRR(Screen* screen, int coreId) {
                 logFile.close();
                 return;
             }
-            std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Simulate work
+            std::this_thread::sleep_for(std::chrono::milliseconds(50)); // Simulate work
             // Get timestamp
             time_t now = time(0);
             tm ltm;
