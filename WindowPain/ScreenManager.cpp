@@ -1,6 +1,7 @@
 #include "ScreenManager.h"
 #include "ConsoleManager.h"
 #include "Screen.h"
+#include "Scheduler.h"
 #include "Utils.h"
 #include "Config.h"
 
@@ -13,11 +14,12 @@
 #include <sstream>
 #include <string>
 #include <algorithm>
+#include <random>
 
 using std::max;
 using std::min;
 
-ScreenManager::ScreenManager(ConsoleManager& cm) : consoleManager(cm), currentScreen("") {}
+ScreenManager::ScreenManager(ConsoleManager& cm) : consoleManager(cm), currentScreen(""), scheduler(nullptr), schedulerRunning(false) {}
 
 void ScreenManager::screenCreate(const String& name) {
     if (screens.find(name) != screens.end()) {
@@ -133,4 +135,165 @@ void ScreenManager::screenList(const String& type) {
             printInColor("Error: Could not open csopesy_log.txt for writing.\n\n", "red");
         }
     }
+}
+
+void ScreenManager::schedulerTest() {
+    // Ensure only one instance of the scheduler runs at a time
+    if (schedulerRunning) {
+        printInColor("Scheduler is already running.\n\n", "red");
+        return;
+    }
+
+    printInColor("Scheduler has started.\n\n", "yellow");
+    schedulerRunning = true;
+
+    // Clear all existing log files before starting (Just in case there are files with the exact name process)
+    for (const auto& screenEntry : screens) {
+        std::ofstream logFile(screenEntry.first + ".txt", std::ios::trunc);
+        if (logFile.is_open()) {
+            logFile.close();
+        }
+        else {
+            std::cerr << "Error: Could not clear file " << screenEntry.first << ".txt\n";
+        }
+    }
+
+    // Initialize the scheduler with the config
+    scheduler = new Scheduler(config);
+
+    // Scheduler's background operation
+    schedulerThread = std::thread([this]() {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_int_distribution<> dist(config.min_ins, config.max_ins);
+
+        int cycleCounter = 0;
+
+        // Background scheduler loop
+        while (schedulerRunning) {
+            // Add a new process at intervals defined by batch_process_freq
+            if (cycleCounter % config.batch_process_freq == 0) {
+                String screenName = "process" + std::to_string(cycleCounter / config.batch_process_freq);
+                int instructionCount = dist(gen);
+
+                // Create a new screen (process) and set its instruction count
+                screenCreate(screenName);
+                screens[screenName].totalLines = instructionCount;
+
+                // Add the new process to the scheduler
+                scheduler->addProcess(screens[screenName]);
+            }
+
+            // Apply delay
+            if (config.delays_per_exec > 0) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(config.delays_per_exec));
+            }
+
+            cycleCounter++;
+        }
+
+        printInColor("Scheduler background process stopped.\n\n", "yellow");
+        });
+
+    // Detach the thread to let it run in the background
+    schedulerThread.detach();
+}
+
+void ScreenManager::schedulerStop() {
+    if (schedulerRunning) {
+        // Stop the background scheduler loop
+        schedulerRunning = false;
+        if (scheduler) {
+            scheduler->finish();
+            delete scheduler;
+            scheduler = nullptr;
+        }
+    }
+    else {
+        printInColor("Scheduler is not running.\n\n", "red");
+    }
+}
+
+void ScreenManager::loadConfig(const String& filename) {
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        throw std::runtime_error("Could not open config file.");
+    }
+
+    String parameter;
+
+    while (file >> parameter) {
+        if (parameter == "num-cpu") {
+            int value;
+            file >> value;
+            config.num_cpu = clamp(value, 1, 128);
+        }
+        else if (parameter == "scheduler") {
+            String schedulerValue;
+            file >> schedulerValue;
+            if (schedulerValue == "fcfs" || schedulerValue == "rr") {
+                config.scheduler = schedulerValue;
+            }
+            else {
+                throw std::runtime_error("Invalid scheduler value.");
+            }
+        }
+        else if (parameter == "quantum-cycles") {
+            int value;
+            file >> value;
+            config.quantum_cycles = clamp(value, 1, 4294967296); // [1, 2^32]
+        }
+        else if (parameter == "batch-process-freq") {
+            int value;
+            file >> value;
+            config.batch_process_freq = clamp(value, 1, 4294967296); // [1, 2^32
+        }
+        else if (parameter == "min-ins") {
+            int value;
+            file >> value;
+            config.min_ins = clamp(value, 1, 4294967296); // [1, 2^32
+        }
+        else if (parameter == "max-ins") {
+            int value;
+            file >> value;
+            config.max_ins = clamp(value, 1, 4294967296); // [1, 2^32
+        }
+        else if (parameter == "delays-per-exec") {
+            int value;
+            file >> value;
+            config.delays_per_exec = clamp(value, 0, 4294967296); // [0, 2^32
+        }
+        else {
+            std::cerr << "Unknown parameter in config file: " << parameter << std::endl;
+        }
+    }
+
+    file.close();
+}
+
+void ScreenManager::initialize() {
+    try {
+        loadConfig("config.txt");
+    }
+    catch (const std::exception& e) {
+        printInColor("Error: " + String(e.what()) + "\n", "red");
+        return;
+    }
+
+    std::cout << "\n";
+    std::cout << "Configuration Loaded:\n";
+    std::cout << "Number of CPUs: " << config.num_cpu << "\n";
+    std::cout << "Scheduler: " << config.scheduler << "\n";
+    std::cout << "Quantum Cycles: " << config.quantum_cycles << "\n";
+    std::cout << "Batch Process Frequency: " << config.batch_process_freq << "\n";
+    std::cout << "Minimum Instructions: " << config.min_ins << "\n";
+    std::cout << "Maximum Instructions: " << config.max_ins << "\n";
+    std::cout << "Delays per Exec: " << config.delays_per_exec << "\n";
+
+    if (scheduler) {
+        delete scheduler;
+    }
+    scheduler = new Scheduler(config);
+
+    printInColor("Initialization complete.\n\n", "green");
 }

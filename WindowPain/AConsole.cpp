@@ -35,16 +35,16 @@ void AConsole::handleCommand(const String& input) {
                         it->second(args);
                     }
                     else {
-                        printInColor("Unknown command. Type 'help' for available commands.\n", "red");
+                        printInColor("Unknown command. Type 'help' for available commands.\n\n", "red");
                     }
                 }
             }
             else {
-                printInColor("Unknown command. Type 'help' for available commands.\n", "red");
+                printInColor("Unknown command. Type 'help' for available commands.\n\n", "red");
             }
         }
         else {
-            printInColor("Unknown command. Type 'help' for available commands.\n", "red");
+            printInColor("Unknown command. Type 'help' for available commands.\n\n", "red");
         }
     }
 }
