@@ -15,7 +15,7 @@ MainMenuConsole::MainMenuConsole(ScreenManager& sm, ConsoleManager& cm)
     commandMap["initialize"] = [this]() { initialize(); };
     commandMap["screen"] = [this]() { screen(); };
     commandMapWithArgs["screen -s"] = [this](const String& args) {
-        screenManager.screenCreate(args);
+        screenManager.screenCreate(args, "screenCreate");
         if (screenManager.currentScreen != "") {
             consoleManager.switchConsole(ConsoleType::Screen);
         }

@@ -21,7 +21,7 @@ using std::min;
 
 ScreenManager::ScreenManager(ConsoleManager& cm) : consoleManager(cm), currentScreen(""), scheduler(nullptr), schedulerRunning(false) {}
 
-void ScreenManager::screenCreate(const String& name) {
+void ScreenManager::screenCreate(const String& name, const String &type) {
     if (screens.find(name) != screens.end()) {
         printInColor("Screen already exists with this name.\n\n", "red");
         return;
@@ -43,7 +43,9 @@ void ScreenManager::screenCreate(const String& name) {
 
     // Add to map and update current screen
     screens[name] = newScreen;
-    currentScreen = name;
+    if (type == "screenCreate") {
+        currentScreen = name;
+    }
 }
 
 void ScreenManager::screenRestore(const String& name) {
@@ -177,7 +179,7 @@ void ScreenManager::schedulerTest() {
                 int instructionCount = dist(gen);
 
                 // Create a new screen (process) and set its instruction count
-                screenCreate(screenName);
+                screenCreate(screenName, "schedulerTest");
                 screens[screenName].totalLines = instructionCount;
 
                 // Add the new process to the scheduler

@@ -19,7 +19,7 @@ public:
     std::unordered_map<String, Screen> screens; // list of screens
     String currentScreen;                  // current screen displayed
     ScreenManager(ConsoleManager& cm);
-    void screenCreate(const String& name);     // create screen
+    void screenCreate(const String& name, const String& type);     // create screen
     void screenRestore(const String& name);    // inspect screen
     void screenList(const String& type);              // display screen list
     void schedulerTest();                            // Method to start the scheduler
