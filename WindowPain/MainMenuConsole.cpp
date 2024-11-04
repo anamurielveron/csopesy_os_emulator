@@ -159,6 +159,7 @@ void MainMenuConsole::initialize() {
         return;
     }
 
+    std::cout << "\n";
     std::cout << "Configuration Loaded:\n";
     std::cout << "Number of CPUs: " << config.num_cpu << "\n";
     std::cout << "Scheduler: " << config.scheduler << "\n";

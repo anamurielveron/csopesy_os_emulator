@@ -28,15 +28,15 @@ void ScreenConsole::draw() {
 }
 
 void ScreenConsole::processSMI() {
-    String currentScreenString = screenManager.currentScreen;
-    Screen currentScreen = screenManager.screens[currentScreenString];
+    const String& currentScreenString = screenManager.currentScreen;
+    const Screen& currentScreen = screenManager.screens[currentScreenString];
 
     std::cout << "\nScreen Name: " << currentScreen.name << "\n";
     std::cout << "Timestamp: " << currentScreen.timestamp << "\n";
     std::cout << "Current Line: " << currentScreen.currentLine << " / " << currentScreen.totalLines << "\n";
 
-    if (currentScreen.currentLine >= currentScreen.totalLines) {
-        printInColor("This process has finished!", "green");
+    if (currentScreen.finished) {
+        printInColor("Finished!\n", "green");
     }
 
     std::cout << "\n";
