@@ -30,7 +30,6 @@ Scheduler::~Scheduler() {
     }
 }
 
-
 void Scheduler::worker(int coreId) {
     while (true) {
         if (finished) return;

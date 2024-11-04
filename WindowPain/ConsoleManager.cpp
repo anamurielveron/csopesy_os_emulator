@@ -1,7 +1,9 @@
+#include "Utils.h"
 #include "ConsoleManager.h"
 #include "AConsole.h"
 #include "ScreenManager.h"
 #include "MainMenuConsole.h"
+#include "Scheduler.h"
 #include "ScreenConsole.h"
 #include "Screen.h"
 

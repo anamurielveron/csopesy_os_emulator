@@ -12,9 +12,7 @@ class MainMenuConsole : public AConsole {
 private:
     ConsoleManager& consoleManager;   // reference to the console manager
     ScreenManager& screenManager;   // reference to the screen manager
-    Scheduler* scheduler;
 
-    void loadConfig(const String& filename);
     void printTitle();      // prints the main menu title
     void help();            // list all commands for main menu console
     void initialize();      // N/A
@@ -26,8 +24,6 @@ private:
     void exitProgram();     // exits the program
 
 public:
-    std::atomic<bool> schedulerRunning{ false };
-    std::thread schedulerThread;
     MainMenuConsole(ScreenManager& sm, ConsoleManager& cm);
     void draw() override;   // draws the main menu console
 };

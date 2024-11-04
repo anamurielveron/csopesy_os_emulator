@@ -1,6 +1,7 @@
 #ifndef CONSOLEMANAGER_H
 #define CONSOLEMANAGER_H
 
+#include "Utils.h"
 #include "AConsole.h"
 #include "ScreenManager.h"
 #include <memory>
