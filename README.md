@@ -1,6 +1,6 @@
 
 # CSOPESY
-An OS emmulator made as mart of the requirements for our Introduction to Operating Systems course.
+An OS emulator made as part of the requirements for the Introduction to Operating Systems course.
 
 ### Authors
 - [Bacosa, Gabriel Luis](https://github.com/GabBacosa)
@@ -10,4 +10,4 @@ An OS emmulator made as mart of the requirements for our Introduction to Operati
 
 
 ## Instructions
-To run, clone the repository in Visual Studio and run from there. Enrty class file: `WindowPain.cpp`
+To run, clone the repository in Visual Studio and run from there. Entry class file: `WindowPain.cpp`
