@@ -203,8 +203,6 @@ void ScreenManager::schedulerTest() {
 
             cycleCounter++;
         }
-
-        printInColor("Scheduler-test stopped.\n\n", "yellow");
     });
 
     // Detach the thread to let it run in the background
@@ -215,6 +213,7 @@ void ScreenManager::schedulerStop() {
     if (testRunning) {
         // Stop the background scheduler loop
         testRunning = false;
+        printInColor("Scheduler-test stopped.\n\n", "yellow");
     }
     else {
         printInColor("Scheduler-test is not running.\n\n", "red");
