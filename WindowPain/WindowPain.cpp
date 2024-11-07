@@ -1,6 +1,8 @@
 // WindowPain.cpp : This file contains the 'main' function. Program execution begins and ends there.
 
 #include <iostream>
+#include <atomic>
+#include <thread>
 #include "Utils.h"
 #include "ConsoleManager.h"
 #include "MainMenuConsole.h"
@@ -11,6 +13,18 @@
 void commandLoop(ConsoleManager& console) {
     String input;
     bool isInitialized = false;
+    std::atomic<int> cpuCycles = 0;
+
+    // CPU cycle thread
+    std::thread cycleThread([&cpuCycles]() {
+        while (true) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            cpuCycles++;   
+
+            // TODO: Thread should run in the background.
+            // TODO: CPU counter should increment first before other threads do their task.
+        }
+    });
 
     // Command loop
     while (true) {
