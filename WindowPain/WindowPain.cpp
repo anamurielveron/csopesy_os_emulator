@@ -16,15 +16,15 @@ void commandLoop(ConsoleManager& console) {
     std::atomic<int> cpuCycles = 0;
 
     // CPU cycle thread
-    std::thread cycleThread([&cpuCycles]() {
+    std::thread cpuCycleThread([&cpuCycles]() {
         while (true) {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
             cpuCycles++;   
 
-            // TODO: Thread should run in the background.
             // TODO: CPU counter should increment first before other threads do their task.
         }
     });
+    cpuCycleThread.detach();
 
     // Command loop
     while (true) {
