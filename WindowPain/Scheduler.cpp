@@ -11,8 +11,8 @@
 using std::max;
 using std::min;
 
-Scheduler::Scheduler(const Config& config)
-    : config(config), finished(false), numCores(config.num_cpu), nextCore(0),
+Scheduler::Scheduler(const Config& config, ScreenManager& sm)
+    : screenManager(sm), config(config), finished(false), numCores(config.num_cpu), nextCore(0),
     schedulerType(config.scheduler == "rr" ? SchedulerType::RR : SchedulerType::FCFS),
     quantumCycles(config.quantum_cycles) {
 

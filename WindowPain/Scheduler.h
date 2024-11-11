@@ -2,6 +2,7 @@
 #define SCHEDULER_H
 
 #include "Config.h"
+#include "ScreenManager.h"
 #include <queue>
 #include <mutex>
 #include <condition_variable>
@@ -13,6 +14,8 @@ enum class SchedulerType { FCFS, RR };
 
 class Scheduler {
 private:
+    ScreenManager& screenManager;
+
     std::queue<Screen*> screenQueue;
     std::mutex queueMutex;
     std::condition_variable cv;
@@ -30,7 +33,7 @@ private:
 
 public:
     const Config& config; // Now Config is fully defined and can be used
-    Scheduler(const Config& config);
+    Scheduler(const Config& config, ScreenManager& sm);
     ~Scheduler();
     void addProcess(Screen& screen);
     void finish();

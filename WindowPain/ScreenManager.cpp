@@ -320,7 +320,7 @@ void ScreenManager::initialize() {
     std::cout << "Maximum Instructions: " << config.max_ins << "\n";
     std::cout << "Delays per Exec: " << config.delays_per_exec << "\n";
 
-    scheduler = new Scheduler(config);
+    scheduler = new Scheduler(config, *this);
 
     // Start the scheduler thread
     schedulerRunning = true;
