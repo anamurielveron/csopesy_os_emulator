@@ -27,11 +27,8 @@ void commandLoop(ConsoleManager& console) {
 
             // DONE: Implement process generation 
             // DONE: Implement batch_process_freq in process generation
-            
-            // TODO: Implement queues
-            // TODO: Implement cpu cores
-            // TODO: Implement FCFS scheduler
-            // TODO: Implement RR scheduler
+            // DONE: Synchronize cpu cycle with process execution
+            // TODO: Fix order screens when entering screen -ls
             // TODO: Implement delays_per_exec in process execution
         }
     });
