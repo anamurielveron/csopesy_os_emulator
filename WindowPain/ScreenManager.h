@@ -4,7 +4,7 @@
 #include "Utils.h"
 #include "Screen.h"
 #include "Scheduler.h"
-#include <unordered_map>
+#include <map>
 #include <string>
 #include <atomic>
 #include <thread>
@@ -21,7 +21,7 @@ private:
     ConsoleManager& consoleManager; // reference to the console manager
     Scheduler* scheduler;           // pointer to Scheduler
 public:
-    std::unordered_map<String, Screen> screens; // list of screens
+    std::map<String, Screen> screens; // list of screens
     String currentScreen;                       // current screen displayed
     ScreenManager(ConsoleManager& cm);
     void screenCreate(const String& name, const String& type);
