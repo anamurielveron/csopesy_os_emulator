@@ -30,9 +30,13 @@ public:
     std::atomic<bool> testRunning{ false };
     std::atomic<bool> schedulerRunning{ false };
     std::thread schedulerThread;
+    int processCounter = 0;
 
     // Synchronization of threads
     std::atomic<int> cpuCycles{0};
+    std::mutex mtx;
+    std::condition_variable generateCv;
+
 };
 
 #endif // SCREENMANAGER_H

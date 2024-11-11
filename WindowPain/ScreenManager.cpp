@@ -182,29 +182,29 @@ void ScreenManager::schedulerTest() {
         std::mt19937 gen(rd());
         std::uniform_int_distribution<> dist(config.min_ins, config.max_ins);
 
-        int lastCycleCount = 0;
-
-        // Background scheduler loop
         while (testRunning) {
-            // Add a new process at intervals defined by batch_process_freq
-            if (cpuCycles > lastCycleCount) {
-                lastCycleCount = cpuCycles;
 
-                String screenName = "process" + std::to_string(cpuCycles);
-                int instructionCount = dist(gen);
+            // Wait for cpu to cycle
+            std::unique_lock<std::mutex> lock(mtx);
+            generateCv.wait(lock);
 
-                // Create a new screen (process) and set its instruction count
-                screenCreate(screenName, "schedulerTest");
-                screens[screenName].totalLines = instructionCount;
+            // Add process/es based on batch_process_freq
+            for (int i = 1; i <= config.batch_process_freq; i++) {
+                if (testRunning) {
+                    processCounter++;
 
-                // Add the new process to the scheduler
-                scheduler->addProcess(screens[screenName]);
+                    // Create a new screen (process) and set its instruction count
+                    String screenName = "process" + std::to_string(processCounter);
+                    int instructionCount = dist(gen);
+                    screenCreate(screenName, "schedulerTest");
+                    screens[screenName].totalLines = instructionCount;
+
+                    // Add the new process to the scheduler
+                    scheduler->addProcess(screens[screenName]);
+                }
             }
 
-            // Apply delay
-            if (config.delays_per_exec >= 0) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(config.delays_per_exec + 1));
-            }
+            lock.unlock();
         }
      });
 
@@ -216,6 +216,7 @@ void ScreenManager::schedulerStop() {
     if (testRunning) {
         // Stop the background scheduler loop
         testRunning = false;
+        processCounter = 0;
         printInColor("Scheduler-test stopped.\n\n", "yellow");
     }
     else {
