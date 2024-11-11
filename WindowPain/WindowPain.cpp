@@ -13,25 +13,28 @@
 void commandLoop(ConsoleManager& console) {
     String input;
     bool isInitialized = false;
-    std::atomic<int> cpuCycles = 0;
     std::mutex cpuMutex;
 
     // CPU cycle thread
-    std::thread cpuCycleThread([&cpuCycles, &cpuMutex]() {
+    std::thread cpuCycleThread([&console, &cpuMutex]() {
         while (true) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            // Speed of CPU Cycler
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
             // TODO: CPU counter should increment first before other threads do their task.
             std::lock_guard<std::mutex> lock(cpuMutex);
-            cpuCycles++;    
+            console.getScreenManager().cpuCycles++;
 
-            // TODO: Update process generation
-            // TODO: Update queues
-            // TODO: Update RR scheduler
-            // TODO: Update FCFS scheduler
+            // DONE: Implement process generation 
+            // TODO: Implement batch_process_freq in process generation
+            // TODO: Implement queues
+            // TODO: Implement cpu cores
+            // TODO: Implement FCFS scheduler
+            // TODO: Implement RR scheduler
         }
     });
     cpuCycleThread.detach();
+
 
     // Command loop
     while (true) {

@@ -179,13 +179,15 @@ void ScreenManager::schedulerTest() {
         std::mt19937 gen(rd());
         std::uniform_int_distribution<> dist(config.min_ins, config.max_ins);
 
-        int cycleCounter = 0;
+        int lastCycleCount = 0;
 
         // Background scheduler loop
         while (testRunning) {
             // Add a new process at intervals defined by batch_process_freq
-            if (cycleCounter % (config.batch_process_freq * 40) == 0) {
-                String screenName = "process" + std::to_string((cycleCounter / config.batch_process_freq) / 40);
+            if (cpuCycles > lastCycleCount) {
+                lastCycleCount = cpuCycles;
+
+                String screenName = "process" + std::to_string(cpuCycles);
                 int instructionCount = dist(gen);
 
                 // Create a new screen (process) and set its instruction count
@@ -200,8 +202,6 @@ void ScreenManager::schedulerTest() {
             if (config.delays_per_exec >= 0) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(config.delays_per_exec + 1));
             }
-
-            cycleCounter++;
         }
      });
 

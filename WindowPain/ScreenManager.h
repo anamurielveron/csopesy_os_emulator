@@ -6,6 +6,7 @@
 #include "Scheduler.h"
 #include <unordered_map>
 #include <string>
+#include <atomic>
 
 class ConsoleManager;
 class Screen;
@@ -16,6 +17,7 @@ private:
     ConsoleManager& consoleManager;             // reference to the console manager
     Scheduler* scheduler;                            // pointer to Scheduler
 public:
+    std::atomic<int> cpuCycles{0};
     std::unordered_map<String, Screen> screens; // list of screens
     String currentScreen;                  // current screen displayed
     ScreenManager(ConsoleManager& cm);
