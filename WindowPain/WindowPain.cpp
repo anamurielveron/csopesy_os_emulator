@@ -21,8 +21,9 @@ void commandLoop(ConsoleManager& console) {
         while (true) {
             // Speed of CPU Cycler
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            std::lock_guard<std::mutex> lock(console.getScreenManager().mtx);
             console.getScreenManager().cpuCycles++;
-            console.getScreenManager().generateCv.notify_one();
+            console.getScreenManager().cycleCv.notify_all();
 
             // DONE: Implement process generation 
             // DONE: Implement batch_process_freq in process generation

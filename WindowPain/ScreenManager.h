@@ -7,7 +7,11 @@
 #include <unordered_map>
 #include <string>
 #include <atomic>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 
+class Scheduler;
 class ConsoleManager;
 class Screen;
 
@@ -35,7 +39,7 @@ public:
     // Synchronization of threads
     std::atomic<int> cpuCycles{0};
     std::mutex mtx;
-    std::condition_variable generateCv;
+    std::condition_variable cycleCv;
 
 };
 

@@ -186,7 +186,7 @@ void ScreenManager::schedulerTest() {
 
             // Wait for cpu to cycle
             std::unique_lock<std::mutex> lock(mtx);
-            generateCv.wait(lock);
+            cycleCv.wait(lock);
 
             // Add process/es based on batch_process_freq
             for (int i = 1; i <= config.batch_process_freq; i++) {
@@ -203,8 +203,6 @@ void ScreenManager::schedulerTest() {
                     scheduler->addProcess(screens[screenName]);
                 }
             }
-
-            lock.unlock();
         }
      });
 

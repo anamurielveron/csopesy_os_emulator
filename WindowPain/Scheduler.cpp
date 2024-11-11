@@ -7,6 +7,9 @@
 #include <chrono>
 #include <ctime>
 #include <algorithm>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 
 using std::max;
 using std::min;
@@ -80,7 +83,10 @@ void Scheduler::executeProcessFCFS(Screen* screen, int coreId) {
             logFile.close();
             return;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(50)); // Simulate work
+        //std::this_thread::sleep_for(std::chrono::milliseconds(50)); // Simulate work
+        std::unique_lock<std::mutex> lock(screenManager.mtx);
+        screenManager.cycleCv.wait(lock);
+
         // Get timestamp
         time_t now = time(0);
         tm ltm;
@@ -118,7 +124,10 @@ void Scheduler::executeProcessRR(Screen* screen, int coreId) {
                 logFile.close();
                 return;
             }
-            std::this_thread::sleep_for(std::chrono::milliseconds(50)); // Simulate work
+            //std::this_thread::sleep_for(std::chrono::milliseconds(50)); // Simulate work
+            std::unique_lock<std::mutex> lock(screenManager.mtx);
+            screenManager.cycleCv.wait(lock);
+
             // Get timestamp
             time_t now = time(0);
             tm ltm;

@@ -10,6 +10,7 @@
 #include <thread>
 
 class Screen;
+class ScreenManager;
 enum class SchedulerType { FCFS, RR };
 
 class Scheduler {
