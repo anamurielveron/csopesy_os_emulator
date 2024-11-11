@@ -4,6 +4,9 @@
 #include "Utils.h"
 #include "AConsole.h"
 #include "ScreenManager.h"
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 #include <memory>
 #include <unordered_map>
 #include <string>

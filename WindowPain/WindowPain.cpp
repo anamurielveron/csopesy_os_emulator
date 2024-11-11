@@ -3,6 +3,8 @@
 #include <iostream>
 #include <atomic>
 #include <thread>
+#include <mutex>
+#include <condition_variable>
 #include "Utils.h"
 #include "ConsoleManager.h"
 #include "MainMenuConsole.h"
