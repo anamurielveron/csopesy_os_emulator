@@ -20,16 +20,16 @@ void commandLoop(ConsoleManager& console) {
     std::thread cpuCycleThread([&console]() {
         while (true) {
             // Speed of CPU Cycler
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
             std::lock_guard<std::mutex> lock(console.getScreenManager().mtx);
             console.getScreenManager().cpuCycles++;
             console.getScreenManager().cycleCv.notify_all();
 
-            // DONE: Implement process generation 
+            // DONE: Integrate CPU cycler with process generation 
             // DONE: Implement batch_process_freq in process generation
-            // DONE: Synchronize cpu cycle with process execution
+            // DONE: Integrate CPU cycler with process execution
+            // DONE: Implement delays_per_exec in process execution
             // TODO: Fix order screens when entering screen -ls
-            // TODO: Implement delays_per_exec in process execution
         }
     });
     cpuCycleThread.detach();

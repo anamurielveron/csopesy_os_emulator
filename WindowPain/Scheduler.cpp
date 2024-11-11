@@ -74,6 +74,7 @@ void Scheduler::worker(int coreId) {
 
 // FCFS: Complete execution of each screen process before moving to another process
 void Scheduler::executeProcessFCFS(Screen* screen, int coreId) {
+    int delay = 0;
     screen->coreId = coreId;
     std::ofstream logFile(screen->name + ".txt");
 
@@ -83,50 +84,11 @@ void Scheduler::executeProcessFCFS(Screen* screen, int coreId) {
             logFile.close();
             return;
         }
-        //std::this_thread::sleep_for(std::chrono::milliseconds(50)); // Simulate work
+        // Execute after cpu cycle increments
         std::unique_lock<std::mutex> lock(screenManager.mtx);
         screenManager.cycleCv.wait(lock);
 
-        // Get timestamp
-        time_t now = time(0);
-        tm ltm;
-
-#ifdef _WIN32
-        localtime_s(&ltm, &now);
-#else
-        localtime_r(&now, &ltm);
-#endif
-        char timestamp[25];
-        strftime(timestamp, sizeof(timestamp), "(%m/%d/%Y %I:%M:%S %p)", &ltm);
-
-        // Write log entry
-        logFile << timestamp << " Core:" << coreId << " \"Hello world from " << screen->name << "!\"\n";
-        logFile.flush();
-        screen->currentLine++;
-    }
-
-    logFile.close();
-    screen->finished = true;
-}
-
-// RR: Process each screen with quantum-based execution
-void Scheduler::executeProcessRR(Screen* screen, int coreId) {
-    screen->coreId = coreId;
-    std::ofstream logFile(screen->name + ".txt", std::ios::app);
-
-    int executedLines = 0;
-    while (executedLines < screen->totalLines) {
-        int linesToProcess = min(quantumCycles, screen->totalLines - executedLines);
-
-        for (int i = 0; i < linesToProcess; ++i) {
-            if (screen->currentLine >= screen->totalLines) { // Extra safety check
-                screen->finished = true;
-                logFile.close();
-                return;
-            }
-            //std::this_thread::sleep_for(std::chrono::milliseconds(50)); // Simulate work
-            std::unique_lock<std::mutex> lock(screenManager.mtx);
-            screenManager.cycleCv.wait(lock);
+        if (delay == 0) {
 
             // Get timestamp
             time_t now = time(0);
@@ -144,6 +106,65 @@ void Scheduler::executeProcessRR(Screen* screen, int coreId) {
             logFile << timestamp << " Core:" << coreId << " \"Hello world from " << screen->name << "!\"\n";
             logFile.flush();
             screen->currentLine++;
+
+            // Reset delay
+            delay = config.delays_per_exec;
+        }
+        else {
+            delay--;
+            i--;
+        }
+    }
+
+    logFile.close();
+    screen->finished = true;
+}
+
+// RR: Process each screen with quantum-based execution
+void Scheduler::executeProcessRR(Screen* screen, int coreId) {
+    int delay = 0;
+    screen->coreId = coreId;
+    std::ofstream logFile(screen->name + ".txt", std::ios::app);
+
+    int executedLines = 0;
+    while (executedLines < screen->totalLines) {
+        int linesToProcess = min(quantumCycles, screen->totalLines - executedLines);
+
+        for (int i = 0; i < linesToProcess; ++i) {
+            if (screen->currentLine >= screen->totalLines) { // Extra safety check
+                screen->finished = true;
+                logFile.close();
+                return;
+            }
+            // Execute after cpu cycle increments
+            std::unique_lock<std::mutex> lock(screenManager.mtx);
+            screenManager.cycleCv.wait(lock);
+
+            if (delay == 0) {
+                // Get timestamp
+                time_t now = time(0);
+                tm ltm;
+
+#ifdef _WIN32
+                localtime_s(&ltm, &now);
+#else
+                localtime_r(&now, &ltm);
+#endif
+                char timestamp[25];
+                strftime(timestamp, sizeof(timestamp), "(%m/%d/%Y %I:%M:%S %p)", &ltm);
+
+                // Write log entry
+                logFile << timestamp << " Core:" << coreId << " \"Hello world from " << screen->name << "!\"\n";
+                logFile.flush();
+                screen->currentLine++;
+
+                // Reset delay
+                delay = config.delays_per_exec;
+            }
+            else {
+                delay--;
+                i--;
+            }
         }
 
         executedLines += linesToProcess;
