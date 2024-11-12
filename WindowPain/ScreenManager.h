@@ -23,7 +23,7 @@ private:
 public:
     std::map<int, String> orderedScreens;
     std::map<String, Screen> screens; // list of screens
-    std::map<String, Screen> activeScreens;
+    std::map<String, Screen> screensInMemory;
     String currentScreen;                       // current screen displayed
     ScreenManager(ConsoleManager& cm);
     void screenCreate(const String& name, const String& type);

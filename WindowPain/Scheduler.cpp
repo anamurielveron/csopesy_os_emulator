@@ -246,10 +246,13 @@ void Scheduler::allocateMemory(Screen& screen) {
         memoryFrames[i] = true;
     }
     screen.startFrame = startFrame;  // Store the starting frame for this process
+    screenManager.screensInMemory[screen.name] = screen;
 }
 
 void Scheduler::deallocateMemory(Screen& screen) {
     for (int i = screen.startFrame; i < screen.startFrame + maxOverallMem - 1; ++i) {
         memoryFrames[i] = false;
     }
+    screen.startFrame = -1;
+    screenManager.screensInMemory.erase(screen.name);
 }

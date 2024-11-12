@@ -402,9 +402,9 @@ void ScreenManager::memoryStamp() {
     output << "\n";
 
     // Iterate through all screens
-    if (!activeScreens.empty()) {
+    if (!screensInMemory.empty()) {
         // Copy the entries to a vector for sorting
-        std::vector<std::pair<String, Screen>> screensSortedByStartFrame(activeScreens.begin(), activeScreens.end());
+        std::vector<std::pair<String, Screen>> screensSortedByStartFrame(screensInMemory.begin(), screensInMemory.end());
 
         // Sort by startFrame
         std::sort(screensSortedByStartFrame.begin(), screensSortedByStartFrame.end(),
