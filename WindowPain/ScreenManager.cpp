@@ -373,7 +373,9 @@ void ScreenManager::memoryStamp() {
     // store input
     output << quantumCycles;
 
-    std::ofstream logFile("memory_stamp.txt");
+    String fileName = "memory_stamp_" + std::to_string(quantumCycles) + ".txt";
+
+    std::ofstream logFile(fileName);
     if (logFile.is_open()) {
         logFile << output.str();
         logFile.close();
