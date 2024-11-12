@@ -3,6 +3,7 @@
 #include "Utils.h"
 #include "Config.h"
 
+#include <iostream>
 #include <fstream>
 #include <chrono>
 #include <ctime>
@@ -65,6 +66,7 @@ void Scheduler::worker(int coreId) {
                 screenQueue.pop();
                 screen->coreId = coreId;
                 ++activeCores; // Increment active cores count
+                allocateMemory(screen);
             }
             else {
                 continue;
@@ -79,6 +81,7 @@ void Scheduler::worker(int coreId) {
                 executeProcessRR(screen, coreId);
             }
             --activeCores;
+            //deallocateMemory(screen);
         }
     }
 }
@@ -219,7 +222,8 @@ int Scheduler::calculateFragmentation() {
     return freeFrames;
 }
 
-void Scheduler::allocateMemory(Screen& screen) {
+void Scheduler::allocateMemory(Screen* screen) {
+
     // Search for contiguous free frames
     int startFrame = -1;
     int freeFramesCount = 0;
@@ -245,14 +249,15 @@ void Scheduler::allocateMemory(Screen& screen) {
     for (int i = startFrame; i < startFrame + memPerProc; ++i) {
         memoryFrames[i] = true;
     }
-    screen.startFrame = startFrame;  // Store the starting frame for this process
-    screenManager.screensInMemory[screen.name] = screen;
+    screen->startFrame = startFrame;  // Store the starting frame for this process
+    screenManager.screensInMemory[screen->name] = *screen;
 }
 
-void Scheduler::deallocateMemory(Screen& screen) {
-    for (int i = screen.startFrame; i < screen.startFrame + maxOverallMem - 1; ++i) {
+void Scheduler::deallocateMemory(Screen* screen) {
+
+    for (int i = screen->startFrame; i < screen->startFrame + memPerProc - 1; ++i) {
         memoryFrames[i] = false;
     }
-    screen.startFrame = -1;
-    screenManager.screensInMemory.erase(screen.name);
+    screen->startFrame = -1;
+    screenManager.screensInMemory.erase(screen->name);
 }

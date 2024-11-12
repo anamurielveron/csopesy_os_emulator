@@ -32,8 +32,8 @@ private:
     void worker(int coreId);
     void executeProcessFCFS(Screen* screen, int coreId);
     void executeProcessRR(Screen* screen, int coreId);
-    void allocateMemory(Screen& screen);
-    void deallocateMemory(Screen& screen);
+    void allocateMemory(Screen* screen);
+    void deallocateMemory(Screen* screen);
 
     // Added config vairables
     int maxOverallMem;
