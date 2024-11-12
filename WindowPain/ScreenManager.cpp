@@ -361,3 +361,17 @@ void ScreenManager::initialize() {
     schedulerThread.detach();
     printInColor("Initialization complete.\n\n", "green");
 }
+
+
+void ScreenManager::memoryStamp() {
+    std::ostringstream output;
+
+    // store input
+    output << "wow";
+
+    std::ofstream logFile("memory_stamp.txt");
+    if (logFile.is_open()) {
+        logFile << output.str();
+        logFile.close();
+    }
+}

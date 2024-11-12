@@ -31,6 +31,7 @@ public:
     void schedulerTest();
     void schedulerStop();
     void initialize();
+    void memoryStamp();
     void loadConfig(const String& filename);
     std::atomic<bool> testRunning{ false };
     std::atomic<bool> schedulerRunning{ false };

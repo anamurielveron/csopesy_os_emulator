@@ -1,4 +1,13 @@
 // WindowPain.cpp : This file contains the 'main' function. Program execution begins and ends there.
+/*
+    // DONE: Integrate CPU cycler with process generation
+    // DONE: Implement batch_process_freq in process generation
+    // DONE: Integrate CPU cycler with process execution
+    // DONE: Implement delays_per_exec in process execution
+    // DONE: Fix order of screens when entering screen -ls
+    // TODO: Make CPU cycles run faster
+    // TODO: Fix implementation of core assigning and queues
+*/
 
 #include <iostream>
 #include <atomic>
@@ -17,21 +26,16 @@ void commandLoop(ConsoleManager& console) {
     bool isInitialized = false;
 
     // CPU cycle thread
-    std::thread cpuCycleThread([&console]() {
+    std::thread cpuCycleThread([&console, &isInitialized]() {
         while (true) {
-            // Speed of CPU Cycler
-            std::this_thread::sleep_for(std::chrono::microseconds(10));
-            //std::lock_guard<std::mutex> lock(console.getScreenManager().mtx);
-            console.getScreenManager().cpuCycles++;
-            console.getScreenManager().cycleCv.notify_all();
-
-            // DONE: Integrate CPU cycler with process generation 
-            // DONE: Implement batch_process_freq in process generation
-            // DONE: Integrate CPU cycler with process execution
-            // DONE: Implement delays_per_exec in process execution
-            // DONE: Fix order of screens when entering screen -ls
-            // TODO: Make CPU cycles run faster
-            // TODO: Fix implementation of core assigning and queues
+            if (isInitialized) {
+                // Speed of CPU Cycler
+                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+                //std::lock_guard<std::mutex> lock(console.getScreenManager().mtx);
+                console.getScreenManager().cpuCycles++;
+                console.getScreenManager().memoryStamp();
+                console.getScreenManager().cycleCv.notify_all();
+            }
         }
     });
     cpuCycleThread.detach();
