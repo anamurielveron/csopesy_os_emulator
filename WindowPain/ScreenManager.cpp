@@ -370,11 +370,30 @@ Scheduler* ScreenManager::getScheduler() const {
 void ScreenManager::memoryStamp() {
     std::ostringstream output;
 
-    // store input
-    output << quantumCycles;
+    // Timestamp
+    time_t now = time(0);
+    tm ltm;
+#ifdef _WIN32
+    localtime_s(&ltm, &now);
+#else
+    localtime_r(&now, &ltm);
+#endif
+    char timestamp[25];
+    strftime(timestamp, sizeof(timestamp), "%m/%d/%Y %I:%M:%S %p", &ltm);
 
+    // Contents
+    output << "Timestamp: (" << timestamp << ")\n";
+    output << "Number of processes in memory: x\n";
+    output << "Total external fragmentation in KB: x\n";
+    output << "\n";
+    output << "----end---- = x\n";
+    output << "----start---- = x\n";
+    output << "\n";
+
+    // File name
     String fileName = "memory_stamp_" + std::to_string(quantumCycles) + ".txt";
 
+    // Store contents
     std::ofstream logFile(fileName);
     if (logFile.is_open()) {
         logFile << output.str();
