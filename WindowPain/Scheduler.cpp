@@ -26,9 +26,9 @@ Scheduler::Scheduler(const Config& config, ScreenManager& sm)
     memPerFrame(config.mem_per_frame),
     memPerProc(config.mem_per_proc){
 
-    totalFrames = maxOverallMem / memPerFrame;
-    framesPerProc = memPerProc / memPerFrame;
-    memoryFrames.resize(totalFrames, false);
+    //totalFrames = maxOverallMem / memPerFrame;
+    //framesPerProc = memPerProc / memPerFrame;
+    memoryFrames.resize(maxOverallMem, false);
 
     // Set up threads based on the number of CPUs from the config
     for (int i = 0; i < config.num_cpu; ++i) {
@@ -195,16 +195,56 @@ void Scheduler::executeProcessRR(Screen* screen, int coreId) {
 }
 
 void Scheduler::addProcess(Screen& screen) {
-    {
-        std::lock_guard<std::mutex> lock(queueMutex);
-        screen.coreId = nextCore;
-        screenQueue.push(&screen);
-        nextCore = (nextCore + 1) % numCores;
+    std::lock_guard<std::mutex> lock(queueMutex);
+
+    /*
+    // Search for contiguous free frames
+    int startFrame = -1;
+    int freeFramesCount = 0;
+
+    for (int i = 0; i < maxOverallMem; ++i) {
+        if (!memoryFrames[i]) {
+            freeFramesCount++;
+            if (startFrame == -1) startFrame = i;  // Mark the start of free space
+            if (freeFramesCount == memPerProc) break;  // Enough frames found
+        }
+        else {
+            startFrame = -1;  // Reset if block is interrupted
+            freeFramesCount = 0;
+        }
     }
+
+    if (freeFramesCount < memPerProc) {
+        // Not enough contiguous memory for this process
+        return;
+    }
+
+    // Allocate frames for this process
+    for (int i = startFrame; i < startFrame + memPerProc; ++i) {
+        memoryFrames[i] = true;
+    }
+    screen.startFrame = startFrame;  // Store the starting frame for this process
+    */
+
+    screen.coreId = nextCore;
+    screenQueue.push(&screen);
+    nextCore = (nextCore + 1) % numCores;
     cv.notify_one();
 }
 
 void Scheduler::finish() {
     finished = true;
     cv.notify_all(); // Notify all threads to finish execution
+}
+
+int Scheduler::calculateFragmentation() {
+    int freeFrames = 0;
+
+    for (int i = 0; i < maxOverallMem; ++i) {
+        if (!memoryFrames[i]) {
+            freeFrames++;
+        }
+    }
+
+    return freeFrames;
 }

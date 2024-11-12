@@ -381,35 +381,51 @@ void ScreenManager::memoryStamp() {
     char timestamp[25];
     strftime(timestamp, sizeof(timestamp), "%m/%d/%Y %I:%M:%S %p", &ltm);
 
-    // Contents
-    output << "Timestamp: (" << timestamp << ")\n";
-    output << "Number of processes in memory: x\n";
-    output << "Total external fragmentation in KB: x\n";
-    output << "\n";
-    output << "----end---- = x\n";
-    output << "\n";
-
-    // Iterate through all screens
-    if (!orderedScreens.empty()) {
-        for (const auto& pair : orderedScreens) {
-            int id = pair.first;
-            const String& name = pair.second;
-            
-            output << "x\n";
-            output << name << "\n";
-            output << "x\n";
-            output << "\n";
-
-            /*
-            auto it = screens.find(name);
-            if (it != screens.end()) {
-                const Screen& screen = it->second;
-            }
-            */
+    // Active cores
+    std::unordered_set<int> activeCoreIds;
+    std::unordered_map<int, int> coreProcessCount;
+    for (const auto& screen : screens) {
+        if (!screen.second.finished && screen.second.coreId != -1) {
+            coreProcessCount[screen.second.coreId]++;
+            activeCoreIds.insert(screen.second.coreId);
         }
     }
 
-    output << "----start---- = x\n";
+    int activeCores = activeCoreIds.size();
+
+    // Contents
+    output << "Timestamp: (" << timestamp << ")\n";
+    output << "Number of processes in memory: " << activeCores << "\n";
+    output << "Total external fragmentation in KB: " << scheduler->calculateFragmentation() << "\n";
+    output << "\n";
+    output << "----end---- = " << config.max_overall_mem << "\n";
+    output << "\n";
+
+    // Iterate through all screens
+    if (!activeScreens.empty()) {
+        // Copy the entries to a vector for sorting
+        std::vector<std::pair<String, Screen>> screensSortedByStartFrame(activeScreens.begin(), activeScreens.end());
+
+        // Sort by startFrame
+        std::sort(screensSortedByStartFrame.begin(), screensSortedByStartFrame.end(),
+            [](const auto& a, const auto& b) {
+                return a.second.startFrame > b.second.startFrame;
+            });
+
+        for (const auto& screen : screensSortedByStartFrame) {
+            const String& name = screen.first;
+            const Screen& screenObj = screen.second; 
+
+            if (screenObj.startFrame != -1) {
+                output << (screenObj.startFrame + config.mem_per_proc) << "\n";
+                output << name << "\n";
+                output << screenObj.startFrame << "\n";
+                output << "\n";
+            }
+        }
+    }
+
+    output << "----start---- = 0\n";
     output << "\n";
 
     // File name

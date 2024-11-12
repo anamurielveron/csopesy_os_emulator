@@ -40,8 +40,8 @@ private:
 
     // Frame variables
     std::vector<bool> memoryFrames; // true if occupied, false if free
-    int totalFrames;
-    int framesPerProc;
+    //int totalFrames;
+    //int framesPerProc;
 
 public:
     const Config& config;
@@ -49,6 +49,7 @@ public:
     ~Scheduler();
     void addProcess(Screen& screen);
     void finish();
+    int calculateFragmentation();
 };
 
 #endif // SCHEDULER_H
