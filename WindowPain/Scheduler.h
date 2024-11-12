@@ -22,11 +22,17 @@ private:
     std::condition_variable cv;
     bool finished = false;
     std::vector<std::thread> cores;
+
     int numCores;
     int nextCore = 0;
 
     SchedulerType schedulerType;
     int configQuantumCycles;
+
+    // Added config
+    int maxOverallMem;
+    int memPerFrame;
+    int memPerProc;
 
     void worker(int coreId);
     void executeProcessFCFS(Screen* screen, int coreId);

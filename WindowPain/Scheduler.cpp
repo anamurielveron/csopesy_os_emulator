@@ -15,9 +15,16 @@ using std::max;
 using std::min;
 
 Scheduler::Scheduler(const Config& config, ScreenManager& sm)
-    : screenManager(sm), config(config), finished(false), numCores(config.num_cpu), nextCore(0),
+    : screenManager(sm), 
+    config(config), 
+    finished(false), 
+    numCores(config.num_cpu), 
+    nextCore(0),
     schedulerType(config.scheduler == "rr" ? SchedulerType::RR : SchedulerType::FCFS),
-    configQuantumCycles(config.quantum_cycles) {
+    configQuantumCycles(config.quantum_cycles),
+    maxOverallMem(config.max_overall_mem),
+    memPerFrame(config.mem_per_frame),
+    memPerProc(config.mem_per_proc){
 
     // Set up threads based on the number of CPUs from the config
     for (int i = 0; i < config.num_cpu; ++i) {
