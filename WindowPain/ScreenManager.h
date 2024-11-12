@@ -21,6 +21,7 @@ private:
     ConsoleManager& consoleManager; // reference to the console manager
     Scheduler* scheduler;           // pointer to Scheduler
 public:
+    std::map<int, String> orderedScreens;
     std::map<String, Screen> screens; // list of screens
     String currentScreen;                       // current screen displayed
     ScreenManager(ConsoleManager& cm);
@@ -34,7 +35,8 @@ public:
     std::atomic<bool> testRunning{ false };
     std::atomic<bool> schedulerRunning{ false };
     std::thread schedulerThread;
-    int processCounter = 0;
+    int processIdCounter = 0;
+    int processDummyCounter = 0;
 
     // Synchronization of threads
     std::atomic<int> cpuCycles{0};
