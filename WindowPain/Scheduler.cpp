@@ -81,7 +81,7 @@ void Scheduler::worker(int coreId) {
                 executeProcessRR(screen, coreId);
             }
             --activeCores;
-            //deallocateMemory(screen);
+            deallocateMemory(screen);
         }
     }
 }
@@ -228,7 +228,7 @@ void Scheduler::allocateMemory(Screen* screen) {
     int startFrame = -1;
     int freeFramesCount = 0;
 
-    for (int i = 0; i < maxOverallMem; ++i) {
+    for (int i = 0; i < maxOverallMem; i++) {
         if (!memoryFrames[i]) {
             freeFramesCount++;
             if (startFrame == -1) startFrame = i;  // Mark the start of free space
@@ -246,7 +246,7 @@ void Scheduler::allocateMemory(Screen* screen) {
     }
 
     // Allocate frames for this process
-    for (int i = startFrame; i < startFrame + memPerProc; ++i) {
+    for (int i = startFrame; i < startFrame + memPerProc; i++) {
         memoryFrames[i] = true;
     }
     screen->startFrame = startFrame;  // Store the starting frame for this process
@@ -255,7 +255,7 @@ void Scheduler::allocateMemory(Screen* screen) {
 
 void Scheduler::deallocateMemory(Screen* screen) {
 
-    for (int i = screen->startFrame; i < screen->startFrame + memPerProc - 1; ++i) {
+    for (int i = screen->startFrame; i < screen->startFrame + memPerProc; ++i) {
         memoryFrames[i] = false;
     }
     screen->startFrame = -1;

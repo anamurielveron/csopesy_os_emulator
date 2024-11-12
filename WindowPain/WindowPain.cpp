@@ -31,7 +31,7 @@ void commandLoop(ConsoleManager& console) {
         while (true) {
             if (isInitialized) {
                 // Speed of CPU Cycler
-                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+                std::this_thread::sleep_for(std::chrono::microseconds(1));
                 //std::lock_guard<std::mutex> lock(console.getScreenManager().mtx);
                 console.getScreenManager().cpuCycles++;
                 if (console.getScreenManager().cpuCycles % console.getScreenManager().getScheduler()->config.quantum_cycles == 0) {
