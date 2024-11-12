@@ -26,6 +26,10 @@ Scheduler::Scheduler(const Config& config, ScreenManager& sm)
     memPerFrame(config.mem_per_frame),
     memPerProc(config.mem_per_proc){
 
+    totalFrames = maxOverallMem / memPerFrame;
+    framesPerProc = memPerProc / memPerFrame;
+    memoryFrames.resize(totalFrames, false);
+
     // Set up threads based on the number of CPUs from the config
     for (int i = 0; i < config.num_cpu; ++i) {
         cores.emplace_back(&Scheduler::worker, this, i);

@@ -29,17 +29,22 @@ private:
     SchedulerType schedulerType;
     int configQuantumCycles;
 
-    // Added config
-    int maxOverallMem;
-    int memPerFrame;
-    int memPerProc;
-
     void worker(int coreId);
     void executeProcessFCFS(Screen* screen, int coreId);
     void executeProcessRR(Screen* screen, int coreId);
 
+    // Added config vairables
+    int maxOverallMem;
+    int memPerFrame;
+    int memPerProc;
+
+    // Frame variables
+    std::vector<bool> memoryFrames; // true if occupied, false if free
+    int totalFrames;
+    int framesPerProc;
+
 public:
-    const Config& config; // Now Config is fully defined and can be used
+    const Config& config;
     Scheduler(const Config& config, ScreenManager& sm);
     ~Scheduler();
     void addProcess(Screen& screen);
