@@ -196,8 +196,30 @@ void Scheduler::executeProcessRR(Screen* screen, int coreId) {
 
 void Scheduler::addProcess(Screen& screen) {
     std::lock_guard<std::mutex> lock(queueMutex);
+    screen.coreId = nextCore;
+    screenQueue.push(&screen);
+    nextCore = (nextCore + 1) % numCores;
+    cv.notify_one();
+}
 
-    /*
+void Scheduler::finish() {
+    finished = true;
+    cv.notify_all(); // Notify all threads to finish execution
+}
+
+int Scheduler::calculateFragmentation() {
+    int freeFrames = 0;
+
+    for (int i = 0; i < maxOverallMem; ++i) {
+        if (!memoryFrames[i]) {
+            freeFrames++;
+        }
+    }
+
+    return freeFrames;
+}
+
+void Scheduler::allocateMemory(Screen& screen) {
     // Search for contiguous free frames
     int startFrame = -1;
     int freeFramesCount = 0;
@@ -224,27 +246,10 @@ void Scheduler::addProcess(Screen& screen) {
         memoryFrames[i] = true;
     }
     screen.startFrame = startFrame;  // Store the starting frame for this process
-    */
-
-    screen.coreId = nextCore;
-    screenQueue.push(&screen);
-    nextCore = (nextCore + 1) % numCores;
-    cv.notify_one();
 }
 
-void Scheduler::finish() {
-    finished = true;
-    cv.notify_all(); // Notify all threads to finish execution
-}
-
-int Scheduler::calculateFragmentation() {
-    int freeFrames = 0;
-
-    for (int i = 0; i < maxOverallMem; ++i) {
-        if (!memoryFrames[i]) {
-            freeFrames++;
-        }
+void Scheduler::deallocateMemory(Screen& screen) {
+    for (int i = screen.startFrame; i < screen.startFrame + maxOverallMem - 1; ++i) {
+        memoryFrames[i] = false;
     }
-
-    return freeFrames;
 }

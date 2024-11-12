@@ -97,8 +97,8 @@ void ScreenManager::screenList(const String& type) {
 
     // Capture CPU info to both console and file steam use
     output << "\n---------------------------------------\n";
-    output << "CPU Cycle: " << cpuCycles << "\n";           // for debugging
-    output << "Quantum Cycle: " << quantumCycles << "\n";   // for debugging
+    output << "Current CPU Cycle: " << cpuCycles << "\n";           // for debugging
+    output << "Current Quantum Cycle: " << quantumCycles << "\n";   // for debugging
     output << "CPU Utilization: " << cpuUtilization << "%" << "\n";
     output << "Cores Used: " << activeCores << "\n";
     output << "Cores Available: " << coresAvailable << "\n";
