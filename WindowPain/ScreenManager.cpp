@@ -292,6 +292,21 @@ void ScreenManager::loadConfig(const String& filename) {
             file >> value;
             config.delays_per_exec = clamp(value, 0, 4294967296); // [0, 2^32
         }
+        else if (parameter == "max-overall-mem") {
+            int value;
+            file >> value;
+            config.max_overall_mem = clamp(value, 0, 4294967296); // [0, 2^32
+        }
+        else if (parameter == "mem-per-frame") {
+            int value;
+            file >> value;
+            config.mem_per_frame = clamp(value, 0, 4294967296); // [0, 2^32
+        }
+        else if (parameter == "mem-per-proc") {
+            int value;
+            file >> value;
+            config.mem_per_proc = clamp(value, 0, 4294967296); // [0, 2^32
+        }
         else {
             std::cerr << "Unknown parameter in config file: " << parameter << std::endl;
         }
@@ -327,7 +342,10 @@ void ScreenManager::initialize() {
     std::cout << "Batch Process Frequency: " << config.batch_process_freq << "\n";
     std::cout << "Minimum Instructions: " << config.min_ins << "\n";
     std::cout << "Maximum Instructions: " << config.max_ins << "\n";
-    std::cout << "Delays per Exec: " << config.delays_per_exec << "\n";
+    //std::cout << "Delays per Exec: " << config.delays_per_exec << "\n";
+    std::cout << "Total Memory: " << config.max_overall_mem << "\n";
+    std::cout << "Memory Per Frame: " << config.mem_per_frame << "\n";
+    std::cout << "Memory Per Process: " << config.mem_per_proc << "\n";
 
     scheduler = new Scheduler(config, *this);
 

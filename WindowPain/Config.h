@@ -12,6 +12,9 @@ struct Config {
     int min_ins = 1;
     int max_ins = 1;
     int delays_per_exec = 0;
+    int max_overall_mem = 1;
+    int mem_per_frame = 1;
+    int mem_per_proc = 1;
 };
 
 extern Config config;
