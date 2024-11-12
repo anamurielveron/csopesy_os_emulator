@@ -10,7 +10,8 @@ public:
     int currentLine;    // current line of instruction
     int totalLines;     // total lines of instruction
     String timestamp;   // timestamp of when screen was created
-    int coreId;         // The core assigned to this process
+    int coreId;         // the core assigned to this process
+    int startFrame;     // starting frame for memory allocated
     bool finished;      // Added flag to indicate if process is finished
 
     Screen();
