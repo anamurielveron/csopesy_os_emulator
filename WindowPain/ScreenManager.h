@@ -33,6 +33,7 @@ public:
     void initialize();
     void memoryStamp();
     void loadConfig(const String& filename);
+    Scheduler* getScheduler() const;
     std::atomic<bool> testRunning{ false };
     std::atomic<bool> schedulerRunning{ false };
     std::thread schedulerThread;
@@ -41,6 +42,7 @@ public:
 
     // Synchronization of threads
     std::atomic<int> cpuCycles{0};
+    std::atomic<int> quantumCycles{0};
     std::mutex mtx;
     std::condition_variable cycleCv;
 

@@ -20,6 +20,7 @@
 #include "ScreenConsole.h"
 #include "ScreenManager.h"
 #include "Scheduler.h"
+#include "Config.h"
 
 void commandLoop(ConsoleManager& console) {
     String input;
@@ -33,7 +34,10 @@ void commandLoop(ConsoleManager& console) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(1000));
                 //std::lock_guard<std::mutex> lock(console.getScreenManager().mtx);
                 console.getScreenManager().cpuCycles++;
-                console.getScreenManager().memoryStamp();
+                if (console.getScreenManager().cpuCycles % console.getScreenManager().getScheduler()->config.quantum_cycles == 0) {
+                    console.getScreenManager().quantumCycles++;
+                    console.getScreenManager().memoryStamp();
+                }
                 console.getScreenManager().cycleCv.notify_all();
             }
         }

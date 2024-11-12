@@ -97,7 +97,8 @@ void ScreenManager::screenList(const String& type) {
 
     // Capture CPU info to both console and file steam use
     output << "\n---------------------------------------\n";
-    output << "CPU Cycle: " << cpuCycles << "\n";   // for debugging
+    output << "CPU Cycle: " << cpuCycles << "\n";           // for debugging
+    output << "Quantum Cycle: " << quantumCycles << "\n";   // for debugging
     output << "CPU Utilization: " << cpuUtilization << "%" << "\n";
     output << "Cores Used: " << activeCores << "\n";
     output << "Cores Available: " << coresAvailable << "\n";
@@ -362,12 +363,15 @@ void ScreenManager::initialize() {
     printInColor("Initialization complete.\n\n", "green");
 }
 
+Scheduler* ScreenManager::getScheduler() const {
+    return scheduler; // Return the pointer to the scheduler
+}
 
 void ScreenManager::memoryStamp() {
     std::ostringstream output;
 
     // store input
-    output << "wow";
+    output << quantumCycles;
 
     std::ofstream logFile("memory_stamp.txt");
     if (logFile.is_open()) {
