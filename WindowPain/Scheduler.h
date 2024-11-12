@@ -26,7 +26,7 @@ private:
     int nextCore = 0;
 
     SchedulerType schedulerType;
-    int quantumCycles;
+    int configQuantumCycles;
 
     void worker(int coreId);
     void executeProcessFCFS(Screen* screen, int coreId);
