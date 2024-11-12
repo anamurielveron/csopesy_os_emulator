@@ -20,8 +20,8 @@ void commandLoop(ConsoleManager& console) {
     std::thread cpuCycleThread([&console]() {
         while (true) {
             // Speed of CPU Cycler
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
-            std::lock_guard<std::mutex> lock(console.getScreenManager().mtx);
+            std::this_thread::sleep_for(std::chrono::microseconds(10));
+            //std::lock_guard<std::mutex> lock(console.getScreenManager().mtx);
             console.getScreenManager().cpuCycles++;
             console.getScreenManager().cycleCv.notify_all();
 
@@ -31,6 +31,7 @@ void commandLoop(ConsoleManager& console) {
             // DONE: Implement delays_per_exec in process execution
             // DONE: Fix order of screens when entering screen -ls
             // TODO: Make CPU cycles run faster
+            // TODO: Fix implementation of core assigning and queues
         }
     });
     cpuCycleThread.detach();
