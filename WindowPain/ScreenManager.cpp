@@ -387,6 +387,28 @@ void ScreenManager::memoryStamp() {
     output << "Total external fragmentation in KB: x\n";
     output << "\n";
     output << "----end---- = x\n";
+    output << "\n";
+
+    // Iterate through all screens
+    if (!orderedScreens.empty()) {
+        for (const auto& pair : orderedScreens) {
+            int id = pair.first;
+            const String& name = pair.second;
+            
+            output << "x\n";
+            output << name << "\n";
+            output << "x\n";
+            output << "\n";
+
+            /*
+            auto it = screens.find(name);
+            if (it != screens.end()) {
+                const Screen& screen = it->second;
+            }
+            */
+        }
+    }
+
     output << "----start---- = x\n";
     output << "\n";
 
