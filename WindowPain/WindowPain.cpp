@@ -29,7 +29,8 @@ void commandLoop(ConsoleManager& console) {
             // DONE: Implement batch_process_freq in process generation
             // DONE: Integrate CPU cycler with process execution
             // DONE: Implement delays_per_exec in process execution
-            // TODO: Fix order screens when entering screen -ls
+            // DONE: Fix order of screens when entering screen -ls
+            // TODO: Make CPU cycles run faster
         }
     });
     cpuCycleThread.detach();
