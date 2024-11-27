@@ -32,7 +32,7 @@ public:
     const Config& config; // Now Config is fully defined and can be used
     Scheduler(const Config& config);
     ~Scheduler();
-    void addProcess(Screen& screen);
+    void addReadyQueue(Screen& screen);
     void finish();
 };
 

@@ -34,8 +34,9 @@ void ScreenConsole::processSMI() {
     std::cout << "\nScreen Name: " << currentScreen.name << "\n";
     std::cout << "Timestamp: " << currentScreen.timestamp << "\n";
     std::cout << "Current Line: " << currentScreen.currentLine << " / " << currentScreen.totalLines << "\n";
+    std::cout << "State: " << currentScreen.getStateString() << "\n";
 
-    if (currentScreen.finished) {
+    if (currentScreen.getState() == Screen::State::Finished) {
         printInColor("Finished!\n", "green");
     }
 

@@ -52,7 +52,7 @@ void ScreenManager::screenCreate(const String& name, const String &type) {
         screens[name].totalLines = instructionCount;
 
         // Add the new process to the scheduler
-        scheduler->addProcess(screens[name]);
+        scheduler->addReadyQueue(screens[name]);
         
         //currentScreen = name;
         printInColor("Process \"" + name + "\" created successfully.\n\n", "green");
@@ -79,9 +79,9 @@ void ScreenManager::screenList(const String& type) {
     std::unordered_set<int> activeCoreIds;
     std::unordered_map<int, int> coreProcessCount;
 
-    // Active cores counting for cpu utilization
+    // Active cores counting for CPU utilization
     for (const auto& screen : screens) {
-        if (!screen.second.finished && screen.second.coreId != -1) {
+        if (screen.second.getState() == Screen::State::Running && screen.second.coreId != -1) {
             coreProcessCount[screen.second.coreId]++;
             activeCoreIds.insert(screen.second.coreId);
         }
@@ -91,7 +91,7 @@ void ScreenManager::screenList(const String& type) {
     int coresAvailable = max(0, config.num_cpu - activeCores);
     double cpuUtilization = (static_cast<double>(activeCores) / config.num_cpu) * 100;
 
-    // Capture CPU info to both console and file steam use
+    // Capture CPU info to both console and file stream
     output << "\n---------------------------------------\n";
     output << "CPU Utilization: " << cpuUtilization << "%" << "\n";
     output << "Cores Used: " << activeCores << "\n";
@@ -103,52 +103,59 @@ void ScreenManager::screenList(const String& type) {
     int cnt_running = 0;
     if (!screens.empty()) {
         for (const auto& screen : screens) {
-            if (!screen.second.finished && screen.second.currentLine > 0) {
+            if (!(screen.second.getState() == Screen::State::Finished)) {
                 cnt_running++;
+
+                String stateString = screen.second.getStateString();
+
                 output << std::setw(10) << std::left << screen.first << "   "
                     << "(" << screens[screen.first].timestamp << ")    "
+                    << "State: " << std::setw(8) << std::left << stateString << "   "
                     << "Core: " << std::setw(3) << std::left << screen.second.coreId << "   "
                     << screen.second.currentLine << " / " << screen.second.totalLines << "\n";
             }
         }
-    }
-    if (cnt_running == 0) {
-        output << "No running processes.\n";
-    }
+        if (cnt_running == 0) {
+            output << "No running processes.\n";
+        }
 
-    output << "\nFinished processes:\n";
-    int cnt_finished = 0;
-    if (!screens.empty()) {
-        for (const auto& screen : screens) {
-            if (screen.second.finished) {
-                cnt_finished++;
-                output << std::setw(10) << std::left << screen.first << "   "
-                    << "(" << screens[screen.first].timestamp << ")    "
-                    << "Finished" << std::left << "   "
-                    << screen.second.currentLine << " / " << screen.second.totalLines << "\n";
+        output << "\nFinished processes:\n";
+        int cnt_finished = 0;
+        if (!screens.empty()) {
+            for (const auto& screen : screens) {
+                // Check if the process is in Finished state
+                if (screen.second.getState() == Screen::State::Finished) {
+                    cnt_finished++;
+                    output << std::setw(10) << std::left << screen.first << "   "
+                        << "(" << screens[screen.first].timestamp << ")    "
+                        << "Finished" << std::left << "   "
+                        << screen.second.currentLine << " / " << screen.second.totalLines << "\n";
+                }
+            }
+        }
+        if (cnt_finished == 0) {
+            output << "No finished processes.\n";
+        }
+
+        output << "---------------------------------------\n\n";
+
+        if (type == "screenList") {
+            std::cout << output.str();
+        }
+        else if (type == "reportUtil") {
+            std::ofstream logFile("csopesy_log.txt");
+            if (logFile.is_open()) {
+                logFile << output.str();
+                logFile.close();
+                printInColor("Report generated at csopesy_log.txt\n\n", "green");
+            }
+            else {
+                printInColor("Error: Could not open csopesy_log.txt for writing.\n\n", "red");
             }
         }
     }
-    if (cnt_finished == 0) {
-        output << "No finished processes.\n";
-    }
-
-    output << "---------------------------------------\n\n";
-
-    if (type == "screenList") {
-        std::cout << output.str();
-    } else if (type == "reportUtil") {
-        std::ofstream logFile("csopesy_log.txt");
-        if (logFile.is_open()) {
-            logFile << output.str();
-            logFile.close();
-            printInColor("Report generated at csopesy_log.txt\n\n", "green");
-        }
-        else {
-            printInColor("Error: Could not open csopesy_log.txt for writing.\n\n", "red");
-        }
-    }
 }
+
 
 void ScreenManager::schedulerTest() {
     // Ensure only one instance of the scheduler runs at a time
@@ -184,8 +191,8 @@ void ScreenManager::schedulerTest() {
         // Background scheduler loop
         while (testRunning) {
             // Add a new process at intervals defined by batch_process_freq
-            if (cycleCounter % (config.batch_process_freq * 40) == 0) {
-                String screenName = "process" + std::to_string((cycleCounter / config.batch_process_freq) / 40);
+            if (cycleCounter % (config.batch_process_freq) == 0) {
+                String screenName = "process" + std::to_string(cycleCounter / config.batch_process_freq);
                 int instructionCount = dist(gen);
 
                 // Create a new screen (process) and set its instruction count
@@ -193,7 +200,7 @@ void ScreenManager::schedulerTest() {
                 screens[screenName].totalLines = instructionCount;
 
                 // Add the new process to the scheduler
-                scheduler->addProcess(screens[screenName]);
+                scheduler->addReadyQueue(screens[screenName]);
             }
 
             // Apply delay
@@ -201,7 +208,10 @@ void ScreenManager::schedulerTest() {
                 std::this_thread::sleep_for(std::chrono::milliseconds(config.delays_per_exec + 1));
             }
 
+            
+
             cycleCounter++;
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
      });
 

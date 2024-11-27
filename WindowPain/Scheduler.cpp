@@ -3,6 +3,7 @@
 #include "Utils.h"
 #include "Config.h"
 
+#include <iostream>
 #include <fstream>
 #include <chrono>
 #include <ctime>
@@ -71,20 +72,24 @@ void Scheduler::worker(int coreId) {
 
 // FCFS: Complete execution of each screen process before moving to another process
 void Scheduler::executeProcessFCFS(Screen* screen, int coreId) {
-    screen->coreId = coreId;
-    std::ofstream logFile(screen->name + ".txt");
+    screen->setRunningState();
+    screen->coreId = coreId; // Assign the core
+    std::ofstream logFile(screen->name + ".txt", std::ios::app);
 
+    // Process all lines
     for (int i = 0; i < screen->totalLines; ++i) {
-        if (screen->currentLine >= screen->totalLines) { // Extra safety check
-            screen->finished = true;
+        if (screen->currentLine >= screen->totalLines) { // Safety check
+            screen->setFinishedState(); // Transition to Finished state
             logFile.close();
             return;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(50)); // Simulate work
-        // Get timestamp
+
+        // Simulate work
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+        // Get the current timestamp
         time_t now = time(0);
         tm ltm;
-
 #ifdef _WIN32
         localtime_s(&ltm, &now);
 #else
@@ -93,75 +98,105 @@ void Scheduler::executeProcessFCFS(Screen* screen, int coreId) {
         char timestamp[25];
         strftime(timestamp, sizeof(timestamp), "(%m/%d/%Y %I:%M:%S %p)", &ltm);
 
-        // Write log entry
-        logFile << timestamp << " Core:" << coreId << " \"Hello world from " << screen->name << "!\"\n";
+        // Log the process execution
+        logFile << timestamp << " Core:" << coreId
+            << " \"Hello world from " << screen->name << "!\"\n";
         logFile.flush();
+
         screen->currentLine++;
     }
 
+    // Once all lines are executed, transition to Finished state
+    screen->setFinishedState();
     logFile.close();
-    screen->finished = true;
 }
 
 // RR: Process each screen with quantum-based execution
 void Scheduler::executeProcessRR(Screen* screen, int coreId) {
+    screen->setRunningState();
+    if (screen == nullptr) {
+        throw std::runtime_error("executeProcessRR: Screen pointer is null!");
+    }
+
     screen->coreId = coreId;
+
     std::ofstream logFile(screen->name + ".txt", std::ios::app);
+    if (!logFile.is_open()) {
+        throw std::runtime_error("Failed to open log file: " + screen->name + ".txt");
+    }
 
-    int executedLines = 0;
-    while (executedLines < screen->totalLines) {
-        int linesToProcess = min(quantumCycles, screen->totalLines - executedLines);
+    try {
+        int executedLines = 0;
 
-        for (int i = 0; i < linesToProcess; ++i) {
-            if (screen->currentLine >= screen->totalLines) { // Extra safety check
-                screen->finished = true;
-                logFile.close();
-                return;
+        while (executedLines < screen->totalLines) {
+            int linesToProcess = std::min(quantumCycles, screen->totalLines - executedLines);
+
+            for (int i = 0; i < linesToProcess; ++i) {
+                if (screen->currentLine >= screen->totalLines) {
+                    screen->setFinishedState();
+                    logFile.close();
+                    return;
+                }
+                std::this_thread::sleep_for(std::chrono::milliseconds(50));
+                logFile << "Hello world from " << screen->name << "! Core: " << coreId
+                    << " Line: " << (screen->currentLine + 1) << "\n";
+                logFile.flush();
+                screen->currentLine++;
             }
-            std::this_thread::sleep_for(std::chrono::milliseconds(50)); // Simulate work
-            // Get timestamp
-            time_t now = time(0);
-            tm ltm;
 
-#ifdef _WIN32
-            localtime_s(&ltm, &now);
-#else
-            localtime_r(&now, &ltm);
-#endif
-            char timestamp[25];
-            strftime(timestamp, sizeof(timestamp), "(%m/%d/%Y %I:%M:%S %p)", &ltm);
+            executedLines += linesToProcess;
 
-            // Write log entry
-            logFile << timestamp << " Core:" << coreId << " \"Hello world from " << screen->name << "!\"\n";
-            logFile.flush();
-            screen->currentLine++;
+            if (executedLines < screen->totalLines) {
+                screen->setWaitingState();
+                addReadyQueue(*screen);
+                break;
+            }
         }
 
-        executedLines += linesToProcess;
-
-        if (executedLines < screen->totalLines) {
-            std::unique_lock<std::mutex> lock(queueMutex);
-            screenQueue.push(screen);  // Requeue the process for the next quantum
-            cv.notify_one();
-            break;  // Yield control to other processes
+        if (executedLines >= screen->totalLines) {
+            screen->setFinishedState();
         }
     }
-
-    if (executedLines >= screen->totalLines) {
-        logFile.close();
-        screen->finished = true;
+    catch (const std::exception& e) {
+        std::cerr << "[ERROR] Exception in executeProcessRR: " << e.what() << std::endl;
+        throw;
     }
+
+    logFile.close();
 }
 
-void Scheduler::addProcess(Screen& screen) {
-    {
+    
+
+void Scheduler::addReadyQueue(Screen& screen) {
+    // Validate the screen object
+    if (&screen == nullptr) {
+        throw std::runtime_error("addReadyQueue: Screen object is null!");
+    }
+
+    // Mutex-protected section
+    try {
         std::lock_guard<std::mutex> lock(queueMutex);
-        screen.coreId = nextCore;
+
+        // Transition states
+        if (screen.getState() == Screen::State::New || screen.getState() == Screen::State::Waiting) {
+            screen.setReadyState();
+        }
+
+        // Add the process to the queue
         screenQueue.push(&screen);
+
+        // Update core allocation
         nextCore = (nextCore + 1) % numCores;
     }
+    catch (const std::exception& e) {
+        std::cerr << "[ERROR] Exception in addReadyQueue: " << e.what() << std::endl;
+        throw;
+    }
+
+    // Notify a waiting worker
     cv.notify_one();
 }
+
 
 void Scheduler::finish() {
     finished = true;
