@@ -19,7 +19,13 @@
 using std::max;
 using std::min;
 
-ScreenManager::ScreenManager(ConsoleManager& cm) : consoleManager(cm), currentScreen(""), scheduler(nullptr), schedulerRunning(false), testRunning(false) {}
+ScreenManager::ScreenManager(ConsoleManager& cm)
+    : consoleManager(cm), currentScreen(""),
+    scheduler(nullptr),
+    schedulerRunning(false),
+    testRunning(false),
+    memoryManager(config.max_overall_mem, config.mem_per_proc, config.mem_per_frame, config.num_cpu) {}
+
 
 void ScreenManager::screenCreate(const String& name, const String &type) {
     if (screens.find(name) != screens.end()) {
@@ -74,12 +80,11 @@ void ScreenManager::screenRestore(const String& name) {
 }
 
 void ScreenManager::screenList(const String& type) {
-    std::ostringstream output;  // Create a stream to capture output
-
+    std::ostringstream output; // Stream for capturing output
     std::unordered_set<int> activeCoreIds;
     std::unordered_map<int, int> coreProcessCount;
 
-    // Active cores counting for cpu utilization
+    // Calculate active cores and CPU utilization (only consider non-finished processes)
     for (const auto& screen : screens) {
         if (!screen.second.finished && screen.second.coreId != -1) {
             coreProcessCount[screen.second.coreId]++;
@@ -88,45 +93,42 @@ void ScreenManager::screenList(const String& type) {
     }
 
     int activeCores = activeCoreIds.size();
-    int coresAvailable = max(0, config.num_cpu - activeCores);
+    int coresAvailable = std::max(0, config.num_cpu - activeCores);
     double cpuUtilization = (static_cast<double>(activeCores) / config.num_cpu) * 100;
 
-    // Capture CPU info to both console and file steam use
+    // Header section
     output << "\n---------------------------------------\n";
-    output << "CPU Utilization: " << cpuUtilization << "%" << "\n";
+    output << "CPU Utilization: " << std::fixed << std::setprecision(2) << cpuUtilization << "%\n";
     output << "Cores Used: " << activeCores << "\n";
     output << "Cores Available: " << coresAvailable << "\n";
+    output << "---------------------------------------\n";
 
-    output << "\n---------------------------------------\n";
+    // Consolidated running processes (Running, Ready, Waiting)
     output << "Running processes:\n";
-
     int cnt_running = 0;
-    if (!screens.empty()) {
-        for (const auto& screen : screens) {
-            if (!screen.second.finished && screen.second.currentLine > 0) {
-                cnt_running++;
-                output << std::setw(10) << std::left << screen.first << "   "
-                    << "(" << screens[screen.first].timestamp << ")    "
-                    << "Core: " << std::setw(3) << std::left << screen.second.coreId << "   "
-                    << screen.second.currentLine << " / " << screen.second.totalLines << "\n";
-            }
+    for (const auto& screen : screens) {
+        if (!screen.second.finished) { // Include all non-finished processes
+            cnt_running++;
+            output << std::setw(10) << std::left << screen.first << "   "
+                << "(" << screen.second.timestamp << ")    "
+                << "Core: " << std::setw(3) << std::left << (screen.second.coreId != -1 ? std::to_string(screen.second.coreId) : "N/A") << "   "
+                << screen.second.currentLine << " / " << screen.second.totalLines << "\n";
         }
     }
     if (cnt_running == 0) {
         output << "No running processes.\n";
     }
 
+    // Finished processes
     output << "\nFinished processes:\n";
     int cnt_finished = 0;
-    if (!screens.empty()) {
-        for (const auto& screen : screens) {
-            if (screen.second.finished) {
-                cnt_finished++;
-                output << std::setw(10) << std::left << screen.first << "   "
-                    << "(" << screens[screen.first].timestamp << ")    "
-                    << "Finished" << std::left << "   "
-                    << screen.second.currentLine << " / " << screen.second.totalLines << "\n";
-            }
+    for (const auto& screen : screens) {
+        if (screen.second.finished) {
+            cnt_finished++;
+            output << std::setw(10) << std::left << screen.first << "   "
+                << "(" << screen.second.timestamp << ")    "
+                << "Finished" << "   "
+                << screen.second.currentLine << " / " << screen.second.totalLines << "\n";
         }
     }
     if (cnt_finished == 0) {
@@ -135,9 +137,11 @@ void ScreenManager::screenList(const String& type) {
 
     output << "---------------------------------------\n\n";
 
+    // Output to console or file
     if (type == "screenList") {
         std::cout << output.str();
-    } else if (type == "reportUtil") {
+    }
+    else if (type == "reportUtil") {
         std::ofstream logFile("csopesy_log.txt");
         if (logFile.is_open()) {
             logFile << output.str();
@@ -150,8 +154,11 @@ void ScreenManager::screenList(const String& type) {
     }
 }
 
+
+
+
+
 void ScreenManager::schedulerTest() {
-    // Ensure only one instance of the scheduler runs at a time
     if (testRunning) {
         printInColor("Scheduler-test is already running.\n\n", "red");
         return;
@@ -160,54 +167,33 @@ void ScreenManager::schedulerTest() {
     printInColor("Scheduler-test has started.\n\n", "yellow");
     testRunning = true;
 
-    // Clear all existing log files before starting (Just in case there are files with the exact name process)
-    for (const auto& screenEntry : screens) {
-        std::ofstream logFile(screenEntry.first + ".txt", std::ios::trunc);
-        if (logFile.is_open()) {
-            logFile.close();
-        }
-        else {
-            std::cerr << "Error: Could not clear file " << screenEntry.first << ".txt\n";
-        }
-    }
-
-    // Delete all previous processes
-    screens.clear();
-
+    // Create background thread to generate processes
     std::thread processGeneratorThread([this]() {
-        std::random_device rd;
-        std::mt19937 gen(rd());
-        std::uniform_int_distribution<> dist(config.min_ins, config.max_ins);
-
-        int cycleCounter = 0;
-
-        // Background scheduler loop
+        int processCounter = 1;
         while (testRunning) {
-            // Add a new process at intervals defined by batch_process_freq
-            if (cycleCounter % (config.batch_process_freq * 40) == 0) {
-                String screenName = "process" + std::to_string((cycleCounter / config.batch_process_freq) / 40);
-                int instructionCount = dist(gen);
+            // Create a process every batch_process_freq
+            if (processCounter % config.batch_process_freq== 0) {
+                String processName = "process" + std::to_string(processCounter);
+                int instructionCount = config.min_ins; // Fixed as per config
 
-                // Create a new screen (process) and set its instruction count
-                screenCreate(screenName, "schedulerTest");
-                screens[screenName].totalLines = instructionCount;
+                Screen newProcess(processName, instructionCount);
+                screens[processName] = newProcess; // Add to screens map
 
-                // Add the new process to the scheduler
-                scheduler->addProcess(screens[screenName]);
+                // Add process to the scheduler
+                scheduler->newProcess(screens[processName]);
+
+                processCounter++;
             }
 
-            // Apply delay
-            if (config.delays_per_exec >= 0) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(config.delays_per_exec + 1));
-            }
-
-            cycleCounter++;
+            // Simulate delay for batch frequency
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
-     });
+        });
 
-    // Detach the thread to let it run in the background
     processGeneratorThread.detach();
 }
+
+
 
 void ScreenManager::schedulerStop() {
     if (testRunning) {
@@ -241,7 +227,7 @@ void ScreenManager::loadConfig(const String& filename) {
             char firstChar = file.peek();
             if (firstChar == '"') {
                 file.get();
-                std::getline(file, schedulerValue, '"'); 
+                std::getline(file, schedulerValue, '"');
             }
             else {
                 file >> schedulerValue;
@@ -257,27 +243,43 @@ void ScreenManager::loadConfig(const String& filename) {
         else if (parameter == "quantum-cycles") {
             int value;
             file >> value;
-            config.quantum_cycles = clamp(value, 1, 4294967296); // [1, 2^32]
+            config.quantum_cycles = clamp(value, 1, 4294967296);
         }
         else if (parameter == "batch-process-freq") {
             int value;
             file >> value;
-            config.batch_process_freq = clamp(value, 1, 4294967296); // [1, 2^32
+            config.batch_process_freq = clamp(value, 1, 4294967296);
         }
         else if (parameter == "min-ins") {
             int value;
             file >> value;
-            config.min_ins = clamp(value, 1, 4294967296); // [1, 2^32
+            config.min_ins = clamp(value, 1, 4294967296);
         }
         else if (parameter == "max-ins") {
             int value;
             file >> value;
-            config.max_ins = clamp(value, 1, 4294967296); // [1, 2^32
+            config.max_ins = clamp(value, 1, 4294967296);
         }
         else if (parameter == "delay-per-exec") {
             int value;
             file >> value;
-            config.delays_per_exec = clamp(value, 0, 4294967296); // [0, 2^32
+            config.delays_per_exec = clamp(value, 0, 4294967296);
+        }
+        // New memory parameters
+        else if (parameter == "max-overall-mem") {
+            int value;
+            file >> value;
+            config.max_overall_mem = clamp(value, 2, 4294967296);
+        }
+        else if (parameter == "mem-per-frame") {
+            int value;
+            file >> value;
+            config.mem_per_frame = clamp(value, 2, 1024);
+        }
+        else if (parameter == "mem-per-proc") {
+            int value;
+            file >> value;
+            config.mem_per_proc = clamp(value, 2, config.max_overall_mem);
         }
         else {
             std::cerr << "Unknown parameter in config file: " << parameter << std::endl;
@@ -286,6 +288,7 @@ void ScreenManager::loadConfig(const String& filename) {
 
     file.close();
 }
+
 
 void ScreenManager::initialize() {
 
@@ -315,8 +318,12 @@ void ScreenManager::initialize() {
     std::cout << "Minimum Instructions: " << config.min_ins << "\n";
     std::cout << "Maximum Instructions: " << config.max_ins << "\n";
     std::cout << "Delays per Exec: " << config.delays_per_exec << "\n";
+    std::cout << "Maximum Overall Memory: " << config.max_overall_mem << "\n";
+    std::cout << "Memory per Frame: " << config.mem_per_frame << "\n";
+    std::cout << "Memory per Process: " << config.mem_per_proc << "\n";
 
-    scheduler = new Scheduler(config);
+
+    scheduler = new Scheduler(config, &memoryManager);
 
     // Start the scheduler thread
     schedulerRunning = true;

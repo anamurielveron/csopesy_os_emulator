@@ -19,7 +19,7 @@ private:
 public:
     ConsoleManager();
     ScreenManager& getScreenManager();
-    ConsoleType getCurrentConsoleType();
+    ConsoleType getCurrentConsoleType() const;
     void switchConsole(ConsoleType consoleType);    // switch to a specified console
     void passCommand(const String& command);        // passes command to the current console
 };

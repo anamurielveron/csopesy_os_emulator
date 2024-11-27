@@ -5,13 +5,16 @@
 #include <atomic>
 
 struct Config {
-    int num_cpu = 1;
+    int num_cpu = 2;
     std::string scheduler = "fcfs";
-    int quantum_cycles = 1;
+    int quantum_cycles = 4;
     int batch_process_freq = 1;
-    int min_ins = 1;
-    int max_ins = 1;
-    int delays_per_exec = 0;
+    int min_ins = 100;
+    int max_ins = 100;
+    int delays_per_exec = 2;
+    int max_overall_mem = 16384;     
+    int mem_per_frame = 16;
+    int mem_per_proc = 4096;
 };
 
 extern Config config;

@@ -12,7 +12,7 @@ ConsoleManager::ConsoleManager()
 
 ScreenManager& ConsoleManager::getScreenManager() { return *screenManager; }
 
-ConsoleType ConsoleManager::getCurrentConsoleType() { return currentConsoleType; }
+ConsoleType ConsoleManager::getCurrentConsoleType() const { return currentConsoleType; }
 
 void ConsoleManager::switchConsole(ConsoleType consoleType) {
     switch (consoleType) {

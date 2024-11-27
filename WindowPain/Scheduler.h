@@ -2,6 +2,7 @@
 #define SCHEDULER_H
 
 #include "Config.h"
+#include "MemoryManager.h"
 #include <queue>
 #include <mutex>
 #include <condition_variable>
@@ -11,15 +12,20 @@
 class Screen;
 enum class SchedulerType { FCFS, RR };
 
+
+
 class Scheduler {
 private:
+    MemoryManager* memoryManager;
     std::queue<Screen*> screenQueue;
     std::mutex queueMutex;
     std::condition_variable cv;
-    bool finished = false;
     std::vector<std::thread> cores;
     int numCores;
     int nextCore = 0;
+    bool finished;
+    std::atomic<int> globalQuantumCycle = 0;
+    std::mutex snapshotMutex;
 
     SchedulerType schedulerType;
     int quantumCycles;
@@ -30,9 +36,10 @@ private:
 
 public:
     const Config& config; // Now Config is fully defined and can be used
-    Scheduler(const Config& config);
+    Scheduler(const Config& config, MemoryManager* memoryManager);
     ~Scheduler();
     void addProcess(Screen& screen);
+    void newProcess(Screen& screen);
     void finish();
 };
 
