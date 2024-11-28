@@ -102,7 +102,6 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
@@ -143,6 +142,7 @@
     <ClInclude Include="Config.h" />
     <ClInclude Include="ConsoleManager.h" />
     <ClInclude Include="MainMenuConsole.h" />
+    <ClInclude Include="MemoryManager.h" />
     <ClInclude Include="Scheduler.h" />
     <ClInclude Include="Screen.h" />
     <ClInclude Include="ScreenConsole.h" />

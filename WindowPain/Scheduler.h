@@ -1,6 +1,7 @@
 #ifndef SCHEDULER_H
 #define SCHEDULER_H
 
+#include "MemoryManager.h"
 #include "Config.h"
 #include <queue>
 #include <mutex>
@@ -13,6 +14,7 @@ enum class SchedulerType { FCFS, RR };
 
 class Scheduler {
 private:
+    MemoryManager memoryManager;
     std::queue<Screen*> screenQueue;
     std::mutex queueMutex;
     std::condition_variable cv;
@@ -20,6 +22,7 @@ private:
     std::vector<std::thread> cores;
     int numCores;
     int nextCore = 0;
+
 
     SchedulerType schedulerType;
     int quantumCycles;
@@ -34,6 +37,7 @@ public:
     ~Scheduler();
     void addReadyQueue(Screen& screen);
     void finish();
+    void logQueueState();
 };
 
 #endif // SCHEDULER_H

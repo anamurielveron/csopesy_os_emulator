@@ -1,5 +1,7 @@
 // WindowPain.cpp : This file contains the 'main' function. Program execution begins and ends there.
 
+#include <windows.h>
+#include <string>
 #include <iostream>
 #include "Utils.h"
 #include "ConsoleManager.h"
@@ -56,7 +58,31 @@ void commandLoop(ConsoleManager& console) {
     }
 }
 
+void cleanMemorySnapshots(const std::string& directory) {
+    WIN32_FIND_DATAA findFileData;
+    HANDLE hFind = FindFirstFileA((directory + "\\memory_stamp_*").c_str(), &findFileData);
+
+    if (hFind == INVALID_HANDLE_VALUE) {
+        std::cerr << "[ERROR] No matching files found.\n";
+        return;
+    }
+
+    do {
+        std::string filePath = directory + "\\" + findFileData.cFileName;
+        if (DeleteFileA(filePath.c_str())) {
+            std::cout << "[INFO] Deleted: " << filePath << std::endl;
+        }
+        else {
+            std::cerr << "[ERROR] Could not delete: " << filePath << std::endl;
+        }
+    } while (FindNextFileA(hFind, &findFileData) != 0);
+
+    FindClose(hFind);
+}
+
+
 int main() {
+    cleanMemorySnapshots("./");
     ConsoleManager consoleManager;
     consoleManager.switchConsole(ConsoleType::MainMenu);
     commandLoop(consoleManager);
