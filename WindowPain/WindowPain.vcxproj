@@ -143,6 +143,7 @@
     <ClInclude Include="ConsoleManager.h" />
     <ClInclude Include="MainMenuConsole.h" />
     <ClInclude Include="MemoryManager.h" />
+    <ClInclude Include="PagingAllocator.h" />
     <ClInclude Include="Scheduler.h" />
     <ClInclude Include="Screen.h" />
     <ClInclude Include="ScreenConsole.h" />

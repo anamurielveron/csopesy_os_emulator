@@ -43,7 +43,6 @@ public:
     // Allocate memory using first-fit strategy
     bool allocateMemory(const std::string& processName) {
         if (processName.empty()) {
-            std::cout << "[DEBUG] Skipping unnamed process allocation.\n";
             return false;
         }
 
@@ -53,12 +52,10 @@ public:
         auto it = processMemorySizes.find(processName);
         if (it != processMemorySizes.end()) {
             allocSize = it->second; // Use existing size
-            std::cout << "[DEBUG] Using existing memory size " << allocSize << " KB for process " << processName << ".\n";
         }
         else {
             allocSize = randomMemPerProc(); // Randomize new size
             processMemorySizes[processName] = allocSize; // Store the size
-            std::cout << "[DEBUG] Randomized memory size " << allocSize << " KB for process " << processName << ".\n";
         }
 
         // Try to allocate memory
@@ -73,9 +70,6 @@ public:
                         freeBlocks.erase(it); // Remove the block if fully consumed
                     }
 
-                    std::cout << "[DEBUG] Allocated memory for process " << processName
-                        << " (Start: " << std::get<1>(processes.back())
-                        << ", Size: " << allocSize << ").\n";
                     return true;
                 }
             }
@@ -85,7 +79,6 @@ public:
                 moveToBackingStore();
             }
             else {
-                std::cout << "[ERROR] No processes to move to backing store. Memory allocation failed.\n";
                 return false;
             }
         }
@@ -105,28 +98,22 @@ public:
         freeBlocks.push_back({ std::get<1>(oldestProcess), std::get<2>(oldestProcess) });
         mergeFreeBlocks();
 
-        std::cout << "[INFO] Moved process " << std::get<0>(oldestProcess) << " to backing store.\n";
     }
 
     // Reload a process from the backing store
     void reloadFromBackingStore() {
         if (backingStore.empty()) {
-            std::cout << "[DEBUG] Backing store is empty. No processes to reload.\n";
             return;
         }
 
         auto process = backingStore.front();
         backingStore.pop();
 
-        std::cout << "[INFO] Attempting to reload process " << process.first << " from backing store.\n";
 
         if (!allocateMemory(process.first)) {
-            std::cout << "[ERROR] Failed to reload process " << process.first << " from backing store.\n";
             backingStore.push(process); // Return process to backing store
         }
     }
-
-
 
 
     // Deallocate memory for a finished process
@@ -142,14 +129,8 @@ public:
             freeBlocks.push_back({ startAddr, allocSize });
             mergeFreeBlocks();
 
-            std::cout << "[DEBUG] Deallocated memory for process " << processName
-                << " (Start: " << startAddr << ", Size: " << allocSize << ").\n";
-
             // Reload a process from the backing store if possible
             reloadFromBackingStore();
-        }
-        else {
-            std::cout << "[DEBUG] Process " << processName << " not found in memory.\n";
         }
     }
 
@@ -166,7 +147,6 @@ public:
                 --i; // Recheck the current index after merging
             }
         }
-        std::cout << "[DEBUG] Merged adjacent free blocks.\n";
     }
 
 
@@ -217,7 +197,6 @@ public:
         file << "----start---- = 0\n";
         file.close();
 
-        std::cout << "[DEBUG] Memory snapshot generated for quantum cycle " << quantumCycle << ".\n";
     }
 };
 

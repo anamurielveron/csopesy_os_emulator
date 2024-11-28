@@ -2,6 +2,7 @@
 #define SCHEDULER_H
 
 #include "MemoryManager.h"
+#include "PagingAllocator.h"
 #include "Config.h"
 #include <queue>
 #include <mutex>
@@ -14,7 +15,14 @@ enum class SchedulerType { FCFS, RR };
 
 class Scheduler {
 private:
+    enum class AllocatorType {
+        FlatMemory,
+        Paging
+    };
+
+    AllocatorType allocatorType;
     MemoryManager memoryManager;
+    PagingAllocator pagingAllocator;
     std::queue<Screen*> screenQueue;
     std::mutex queueMutex;
     std::condition_variable cv;
@@ -38,6 +46,8 @@ public:
     void addReadyQueue(Screen& screen);
     void finish();
     void logQueueState();
+    AllocatorType getAllocatorType() const;
+
 };
 
 #endif // SCHEDULER_H

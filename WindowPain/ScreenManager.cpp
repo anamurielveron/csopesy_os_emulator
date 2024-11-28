@@ -4,6 +4,8 @@
 #include "Scheduler.h"
 #include "Utils.h"
 #include "Config.h"
+#include "PagingAllocator.h"
+
 
 #include <iostream>
 #include <fstream>
@@ -351,8 +353,25 @@ void ScreenManager::initialize() {
     std::cout << "Maximum memory per process: " << config.max_mem_per_proc << "\n";
     std::cout << "Minimum memory per process: " << config.min_mem_per_proc << "\n";
 
-    MemoryManager memoryManager(config.max_overall_mem, config.min_mem_per_proc, config.max_mem_per_proc, config.mem_per_frame, config.num_cpu);
-
+    if (config.max_overall_mem == config.mem_per_frame) {
+        printInColor("Using flat memory allocation (MemoryManager).\n", "cyan");
+        MemoryManager(
+            config.max_overall_mem,
+            config.min_mem_per_proc,
+            config.max_mem_per_proc,
+            config.mem_per_frame,
+            config.num_cpu
+        );
+    }
+    else {
+        printInColor("Using paging allocation (PagingAllocator).\n", "cyan");
+        PagingAllocator(
+            config.max_overall_mem,
+            config.mem_per_frame,
+            config.min_mem_per_proc,
+            config.max_mem_per_proc
+        );
+    }
     scheduler = new Scheduler(config);
 
     // Start the scheduler thread

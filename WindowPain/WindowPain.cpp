@@ -102,10 +102,32 @@ void cleanProcessSnapshots(const std::string& directory) {
     FindClose(hFind);
 }
 
+void cleanPagingSnapshots(const std::string& directory) {
+    WIN32_FIND_DATAA findFileData;
+    HANDLE hFind = FindFirstFileA((directory + "\\paging_snapshot_*").c_str(), &findFileData);
+
+    if (hFind == INVALID_HANDLE_VALUE) {
+        std::cerr << "[ERROR] No matching files found.\n";
+        return;
+    }
+
+    do {
+        std::string filePath = directory + "\\" + findFileData.cFileName;
+        if (DeleteFileA(filePath.c_str())) {
+        }
+        else {
+            std::cerr << "[ERROR] Could not delete: " << filePath << std::endl;
+        }
+    } while (FindNextFileA(hFind, &findFileData) != 0);
+
+    FindClose(hFind);
+}
+
 
 int main() {
     cleanMemorySnapshots("./");
     cleanProcessSnapshots("./");
+    cleanPagingSnapshots("./");
     ConsoleManager consoleManager;
     consoleManager.switchConsole(ConsoleType::MainMenu);
     commandLoop(consoleManager);

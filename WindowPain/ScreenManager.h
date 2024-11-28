@@ -15,6 +15,7 @@ class ScreenManager {
 private:
     ConsoleManager& consoleManager;             // reference to the console manager
     Scheduler* scheduler;                            // pointer to Scheduler
+
 public:
     std::unordered_map<String, Screen> screens; // list of screens
     String currentScreen;                  // current screen displayed

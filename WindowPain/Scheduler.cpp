@@ -16,12 +16,22 @@ using std::min;
 Scheduler::Scheduler(const Config& config)
     : config(config),
     memoryManager(config.max_overall_mem, config.min_mem_per_proc, config.max_mem_per_proc, config.mem_per_frame, config.num_cpu),
-    numCores(config.num_cpu),
+    pagingAllocator(config.max_overall_mem, config.mem_per_frame, config.min_mem_per_proc, config.max_mem_per_proc),
     schedulerType(config.scheduler == "rr" ? SchedulerType::RR : SchedulerType::FCFS),
-    quantumCycles(config.quantum_cycles) {
+    quantumCycles(config.quantum_cycles),
+    numCores(config.num_cpu) {
+
+    allocatorType = (config.max_overall_mem == config.mem_per_frame)
+        ? AllocatorType::FlatMemory
+        : AllocatorType::Paging;
+
     for (int i = 0; i < numCores; ++i) {
         cores.emplace_back(&Scheduler::worker, this, i);
     }
+}
+
+Scheduler::AllocatorType Scheduler::getAllocatorType() const {
+    return allocatorType;
 }
 
 Scheduler::~Scheduler() {
@@ -74,7 +84,17 @@ void Scheduler::worker(int coreId) {
 
             // Handle Ready state
             if (screen->getState() == Screen::State::Ready) {
-                if (memoryManager.allocateMemory(screen->getName())) {
+                bool allocated = false;
+
+                // Use the appropriate memory allocator
+                if (allocatorType == AllocatorType::FlatMemory) {
+                    allocated = memoryManager.allocateMemory(screen->getName());
+                }
+                else if (allocatorType == AllocatorType::Paging) {
+                    allocated = pagingAllocator.allocatePages(screen->getName());
+                }
+
+                if (allocated) {
                     screen->setRunningState();
                     std::this_thread::sleep_for(std::chrono::milliseconds(10)); // Delay for memory allocation
 
@@ -88,15 +108,27 @@ void Scheduler::worker(int coreId) {
 
                     // Generate snapshot only if this is the designated core
                     if (coreId == 0) {
-                        memoryManager.generateSnapshot(quantumCycle);
+                        if (allocatorType == AllocatorType::FlatMemory) {
+                            memoryManager.generateSnapshot(quantumCycle);
+                        }
+                        else if (allocatorType == AllocatorType::Paging) {
+                            pagingAllocator.generateSnapshot(quantumCycle);
+                        }
+
                         quantumCycle += quantumCycles;
                         std::this_thread::sleep_for(std::chrono::milliseconds(20)); // Delay for snapshot generation
                     }
 
                     // Check if the process is now finished
                     if (screen->getState() == Screen::State::Finished) {
-                        std::cout << "[DEBUG] Process " << screen->getName() << " moved to Finished state.\n";
-                        memoryManager.deallocateMemory(screen->getName());
+
+                        if (allocatorType == AllocatorType::FlatMemory) {
+                            memoryManager.deallocateMemory(screen->getName());
+                        }
+                        else if (allocatorType == AllocatorType::Paging) {
+                            pagingAllocator.deallocatePages(screen->getName());
+                        }
+
                         continue; // Do not requeue the process
                     }
 
@@ -112,7 +144,13 @@ void Scheduler::worker(int coreId) {
 
             // Handle Waiting state
             if (screen->getState() == Screen::State::Waiting) {
-                memoryManager.deallocateMemory(screen->getName());
+                if (allocatorType == AllocatorType::FlatMemory) {
+                    memoryManager.deallocateMemory(screen->getName());
+                }
+                else if (allocatorType == AllocatorType::Paging) {
+                    pagingAllocator.deallocatePages(screen->getName());
+                }
+
                 std::this_thread::sleep_for(std::chrono::milliseconds(20)); // Delay for deallocation
                 addReadyQueue(*screen);
                 continue;
@@ -132,11 +170,6 @@ void Scheduler::worker(int coreId) {
         }
     }
 }
-
-
-
-
-
 
 
 // FCFS: Complete execution of each screen process before moving to another process
