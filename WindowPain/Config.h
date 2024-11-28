@@ -14,7 +14,8 @@ struct Config {
     int delays_per_exec = 0;
     int max_overall_mem;
     int mem_per_frame;
-    int mem_per_proc;
+    int min_mem_per_proc;
+    int max_mem_per_proc;
 };
 
 extern Config config;

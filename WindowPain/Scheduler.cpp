@@ -15,7 +15,7 @@ using std::min;
 
 Scheduler::Scheduler(const Config& config)
     : config(config),
-    memoryManager(config.max_overall_mem, config.mem_per_proc, config.mem_per_frame, config.num_cpu),
+    memoryManager(config.max_overall_mem, config.min_mem_per_proc, config.max_mem_per_proc, config.mem_per_frame, config.num_cpu),
     numCores(config.num_cpu),
     schedulerType(config.scheduler == "rr" ? SchedulerType::RR : SchedulerType::FCFS),
     quantumCycles(config.quantum_cycles) {
