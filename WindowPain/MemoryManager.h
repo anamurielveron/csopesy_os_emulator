@@ -36,37 +36,6 @@ public:
         freeBlocks.push_back({ 0, maxMem }); // Initially, all memory is free
     }
 
-    //void moveToBackingStore() {
-    //    if (processes.empty()) return;
-
-    //    // Remove the oldest process (first in the list)
-    //    auto oldestProcess = processes.front();
-    //    processes.erase(processes.begin());
-
-    //    // Add it to the backing store
-    //    backingStore.push(oldestProcess);
-
-    //    // Deallocate its memory
-    //    freeBlocks.push_back({ oldestProcess.second, memPerProc });
-    //    mergeFreeBlocks();
-
-    //    std::cout << "[INFO] Moved process " << oldestProcess.first << " to backing store.\n";
-    //}
-
-    //void reloadFromBackingStore() {
-    //    if (backingStore.empty()) return;
-
-    //    while (freeBlocks.empty() || freeBlocks[0].size < memPerProc) {
-    //        moveToBackingStore();
-    //    }
-
-    //    auto process = backingStore.front();
-    //    if (allocateMemory(process.first)) {
-    //        backingStore.pop();
-    //        std::cout << "[INFO] Reloaded process " << process.first << " from backing store.\n";
-    //    }
-    //}
-
     int randomMemPerProc() const {
         return minMemPerProc + (std::rand() % (maxMemPerProc - minMemPerProc + 1));
     }
@@ -93,52 +62,97 @@ public:
         }
 
         // Try to allocate memory
-        for (auto it = freeBlocks.begin(); it != freeBlocks.end(); ++it) {
-            if (it->size >= allocSize) { // Check if the block is large enough
-                processes.push_back({ processName, it->start, allocSize }); // Allocate process
-                it->start += allocSize;  // Update the start of the free block
-                it->size -= allocSize;   // Reduce the size of the free block
+        while (true) {
+            for (auto it = freeBlocks.begin(); it != freeBlocks.end(); ++it) {
+                if (it->size >= allocSize) { // Check if the block is large enough
+                    processes.push_back({ processName, it->start, allocSize }); // Allocate process
+                    it->start += allocSize;  // Update the start of the free block
+                    it->size -= allocSize;   // Reduce the size of the free block
 
-                if (it->size == 0) {
-                    freeBlocks.erase(it); // Remove the block if fully consumed
+                    if (it->size == 0) {
+                        freeBlocks.erase(it); // Remove the block if fully consumed
+                    }
+
+                    std::cout << "[DEBUG] Allocated memory for process " << processName
+                        << " (Start: " << std::get<1>(processes.back())
+                        << ", Size: " << allocSize << ").\n";
+                    return true;
                 }
+            }
 
-                std::cout << "[DEBUG] Allocated memory for process " << processName
-                    << " (Start: " << std::get<1>(processes.back())
-                    << ", Size: " << allocSize << ").\n";
-                return true;
+            // If memory allocation failed, move oldest process to backing store
+            if (!processes.empty()) {
+                moveToBackingStore();
+            }
+            else {
+                std::cout << "[ERROR] No processes to move to backing store. Memory allocation failed.\n";
+                return false;
             }
         }
-
-        std::cout << "[DEBUG] Memory allocation failed for process " << processName << ".\n";
-        return false;
     }
+
+    void moveToBackingStore() {
+        if (processes.empty()) return;
+
+        // Remove the oldest process
+        auto oldestProcess = processes.front();
+        processes.erase(processes.begin());
+
+        // Add it to the backing store
+        backingStore.push({ std::get<0>(oldestProcess), std::get<2>(oldestProcess) });
+
+        // Deallocate its memory
+        freeBlocks.push_back({ std::get<1>(oldestProcess), std::get<2>(oldestProcess) });
+        mergeFreeBlocks();
+
+        std::cout << "[INFO] Moved process " << std::get<0>(oldestProcess) << " to backing store.\n";
+    }
+
+    // Reload a process from the backing store
+    void reloadFromBackingStore() {
+        if (backingStore.empty()) {
+            std::cout << "[DEBUG] Backing store is empty. No processes to reload.\n";
+            return;
+        }
+
+        auto process = backingStore.front();
+        backingStore.pop();
+
+        std::cout << "[INFO] Attempting to reload process " << process.first << " from backing store.\n";
+
+        if (!allocateMemory(process.first)) {
+            std::cout << "[ERROR] Failed to reload process " << process.first << " from backing store.\n";
+            backingStore.push(process); // Return process to backing store
+        }
+    }
+
+
 
 
     // Deallocate memory for a finished process
     void deallocateMemory(const std::string& processName) {
-        // Find the process in the list of allocated processes
         auto it = std::find_if(processes.begin(), processes.end(),
             [&processName](const auto& process) { return std::get<0>(process) == processName; });
 
         if (it != processes.end()) {
-            int startAddr = std::get<1>(*it); // Get the start address of the process
-            int allocSize = std::get<2>(*it); // Get the size of the allocated block
-            processes.erase(it);             // Remove the process from the allocated list
+            int startAddr = std::get<1>(*it);
+            int allocSize = std::get<2>(*it);
+            processes.erase(it);
 
-            // Add the deallocated memory as a new free block
             freeBlocks.push_back({ startAddr, allocSize });
-
-            // Merge adjacent free blocks
             mergeFreeBlocks();
 
             std::cout << "[DEBUG] Deallocated memory for process " << processName
                 << " (Start: " << startAddr << ", Size: " << allocSize << ").\n";
+
+            // Reload a process from the backing store if possible
+            reloadFromBackingStore();
         }
         else {
             std::cout << "[DEBUG] Process " << processName << " not found in memory.\n";
         }
     }
+
 
     // Merge adjacent free blocks to reduce fragmentation
     void mergeFreeBlocks() {
