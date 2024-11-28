@@ -31,9 +31,9 @@ void ScreenConsole::processSMI() {
     const String& currentScreenString = screenManager.currentScreen;
     const Screen& currentScreen = screenManager.screens[currentScreenString];
 
-    std::cout << "\nScreen Name: " << currentScreen.name << "\n";
-    std::cout << "Timestamp: " << currentScreen.timestamp << "\n";
-    std::cout << "Current Line: " << currentScreen.currentLine << " / " << currentScreen.totalLines << "\n";
+    std::cout << "\nScreen Name: " << currentScreen.getName() << "\n";
+    std::cout << "Timestamp: " << currentScreen.getTimestamp() << "\n";
+    std::cout << "Current Line: " << currentScreen.getCurrentLine() << " / " << currentScreen.getTotalLines() << "\n";
     std::cout << "State: " << currentScreen.getStateString() << "\n";
 
     if (currentScreen.getState() == Screen::State::Finished) {

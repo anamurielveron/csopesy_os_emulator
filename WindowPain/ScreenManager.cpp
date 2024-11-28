@@ -39,7 +39,7 @@ void ScreenManager::screenCreate(const String& name, const String &type) {
 
     // Create a new screen
     Screen newScreen(name, 100);
-    newScreen.timestamp = timestamp;
+    newScreen.setTimestamp(timestamp);
 
     // Add to map and update current screen
     screens[name] = newScreen;
@@ -49,7 +49,7 @@ void ScreenManager::screenCreate(const String& name, const String &type) {
         std::uniform_int_distribution<> dist(config.min_ins, config.max_ins);
 
         int instructionCount = dist(gen);
-        screens[name].totalLines = instructionCount;
+        screens[name].setTotalLines(instructionCount);
 
         // Add the new process to the scheduler
         scheduler->addReadyQueue(screens[name]);
@@ -81,9 +81,9 @@ void ScreenManager::screenList(const String& type) {
 
     // Active cores counting for CPU utilization
     for (const auto& screen : screens) {
-        if (screen.second.getState() == Screen::State::Running && screen.second.coreId != -1) {
-            coreProcessCount[screen.second.coreId]++;
-            activeCoreIds.insert(screen.second.coreId);
+        if (screen.second.getState() == Screen::State::Running && screen.second.getCoreId() != -1) {
+            coreProcessCount[screen.second.getCoreId()]++;
+            activeCoreIds.insert(screen.second.getCoreId());
         }
     }
 
@@ -109,10 +109,10 @@ void ScreenManager::screenList(const String& type) {
                 String stateString = screen.second.getStateString();
 
                 output << std::setw(10) << std::left << screen.first << "   "
-                    << "(" << screens[screen.first].timestamp << ")    "
+                    << "(" << screens[screen.first].getTimestamp() << ")    "
                     << "State: " << std::setw(8) << std::left << stateString << "   "
-                    << "Core: " << std::setw(3) << std::left << screen.second.coreId << "   "
-                    << screen.second.currentLine << " / " << screen.second.totalLines << "\n";
+                    << "Core: " << std::setw(3) << std::left << screen.second.getCoreId() << "   "
+                    << screen.second.getCurrentLine() << " / " << screen.second.getTotalLines() << "\n";
             }
         }
         if (cnt_running == 0) {
@@ -127,9 +127,9 @@ void ScreenManager::screenList(const String& type) {
                 if (screen.second.getState() == Screen::State::Finished) {
                     cnt_finished++;
                     output << std::setw(10) << std::left << screen.first << "   "
-                        << "(" << screens[screen.first].timestamp << ")    "
+                        << "(" << screens[screen.first].getTimestamp() << ")    "
                         << "Finished" << std::left << "   "
-                        << screen.second.currentLine << " / " << screen.second.totalLines << "\n";
+                        << screen.second.getCurrentLine() << " / " << screen.second.getTotalLines() << "\n";
                 }
             }
         }
@@ -197,10 +197,11 @@ void ScreenManager::schedulerTest() {
 
                 // Create a new screen (process) and set its instruction count
                 screenCreate(screenName, "schedulerTest");
-                screens[screenName].totalLines = instructionCount;
+                screens[screenName].setTotalLines(instructionCount);
 
                 // Add the new process to the scheduler
                 scheduler->addReadyQueue(screens[screenName]);
+
             }
 
             // Apply delay
@@ -289,6 +290,21 @@ void ScreenManager::loadConfig(const String& filename) {
             file >> value;
             config.delays_per_exec = clamp(value, 0, 4294967296); // [0, 2^32
         }
+        else if (parameter == "max-overall-mem") {
+            int value;
+            file >> value;
+            config.max_overall_mem = clamp(value, 1, 4294967296);
+        }
+        else if (parameter == "mem-per-frame") {
+            int value;
+            file >> value;
+            config.mem_per_frame = clamp(value, 1, 4294967296);
+        }
+        else if (parameter == "mem-per-proc") {
+            int value;
+            file >> value;
+            config.mem_per_proc = clamp(value, 1, 4294967296);
+        }
         else {
             std::cerr << "Unknown parameter in config file: " << parameter << std::endl;
         }
@@ -325,6 +341,8 @@ void ScreenManager::initialize() {
     std::cout << "Minimum Instructions: " << config.min_ins << "\n";
     std::cout << "Maximum Instructions: " << config.max_ins << "\n";
     std::cout << "Delays per Exec: " << config.delays_per_exec << "\n";
+
+    MemoryManager memoryManager(config.max_overall_mem, config.mem_per_proc, config.mem_per_frame, config.num_cpu);
 
     scheduler = new Scheduler(config);
 
