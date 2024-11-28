@@ -221,7 +221,6 @@ void Scheduler::executeProcessRR(Screen* screen, int coreId) {
 
             if (screen->getCurrentLine() >= screen->getTotalLines()) {
                 screen->setFinishedState();
-                std::cout << "[DEBUG] Process " << screen->getName() << " execution complete.\n";
                 logFile.close();
                 return;
             }
@@ -235,12 +234,6 @@ void Scheduler::executeProcessRR(Screen* screen, int coreId) {
 
     logFile.close();
 }
-
-
-
-
-
-
     
 
 void Scheduler::addReadyQueue(Screen& screen) {
@@ -267,7 +260,6 @@ void Scheduler::addReadyQueue(Screen& screen) {
 
     // Notify a waiting worker
     cv.notify_one();
-    logQueueState();
 }
 
 void Scheduler::logQueueState() {

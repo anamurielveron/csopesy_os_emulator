@@ -31,7 +31,10 @@ public:
     }
 
     // Allocate memory using first-fit strategy
+// Allocate memory using first-fit strategy
     bool allocateMemory(const std::string& processName) {
+        if (processName.empty()) return false; // Ignore unnamed processes
+
         for (auto it = freeBlocks.begin(); it != freeBlocks.end(); ++it) {
             if (it->size >= memPerProc) { // Check if the block is large enough
                 processes.push_back({ processName, it->start }); // Allocate process
@@ -47,20 +50,26 @@ public:
         return false; // No suitable block found
     }
 
+
+
     // Deallocate memory for a finished process
     void deallocateMemory(const std::string& processName) {
+        // Find the process in the list of allocated processes
         auto it = std::find_if(processes.begin(), processes.end(),
             [&processName](const auto& process) { return process.first == processName; });
-        if (it != processes.end()) {
-            int startAddr = it->second;
-            processes.erase(it);
 
-            // Add a new free block
+        if (it != processes.end()) {
+            int startAddr = it->second; // Get the start address of the process
+            processes.erase(it);       // Remove the process from the allocated list
+
+            // Add the deallocated memory as a new free block
             freeBlocks.push_back({ startAddr, memPerProc });
 
-            // Sort and merge adjacent free blocks
+            // Sort free blocks by starting address
             std::sort(freeBlocks.begin(), freeBlocks.end(),
                 [](const MemoryBlock& a, const MemoryBlock& b) { return a.start < b.start; });
+
+            // Merge adjacent free blocks
             for (size_t i = 0; i < freeBlocks.size() - 1; ++i) {
                 if (freeBlocks[i].start + freeBlocks[i].size == freeBlocks[i + 1].start) {
                     freeBlocks[i].size += freeBlocks[i + 1].size; // Merge blocks
@@ -72,17 +81,37 @@ public:
     }
 
 
+
+    
+
+    // Merge adjacent free blocks to reduce fragmentation
+    void mergeFreeBlocks() {
+        std::sort(freeBlocks.begin(), freeBlocks.end(),
+            [](const MemoryBlock& a, const MemoryBlock& b) { return a.start < b.start; });
+
+        for (size_t i = 0; i < freeBlocks.size() - 1; ++i) {
+            if (freeBlocks[i].start + freeBlocks[i].size == freeBlocks[i + 1].start) {
+                freeBlocks[i].size += freeBlocks[i + 1].size; // Merge blocks
+                freeBlocks.erase(freeBlocks.begin() + i + 1); // Remove merged block
+                --i; // Recheck the current index after merging
+            }
+        }
+    }
+
+
+
     // Calculate external fragmentation
     int calculateFragmentation() const {
         int fragmentation = 0;
 
+        // Add sizes of all free memory blocks
         for (const auto& block : freeBlocks) {
-            // Add the size of each free block to fragmentation
             fragmentation += block.size;
         }
 
         return fragmentation;
     }
+
 
     // Generate memory snapshot
     void generateSnapshot(int quantumCycle) const {
@@ -111,13 +140,14 @@ public:
 
         for (const auto& process : processes) {
             int startAddr = process.second;
-            int endAddr = startAddr + memPerProc;
+            int endAddr = startAddr + memPerProc - 1;
             file << endAddr << "\n" << process.first << "\n" << startAddr << "\n";
         }
 
         file << "----start---- = 0\n";
         file.close();
     }
+
 
     void logMemoryState() const {
         std::cout << "----- Memory State -----\n";
