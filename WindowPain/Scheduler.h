@@ -47,6 +47,9 @@ public:
     void finish();
     void logQueueState();
     AllocatorType getAllocatorType() const;
+    void processSMI();
+    void VMstat();
+    void updateCpuTicks(bool isIdle);
 
 };
 

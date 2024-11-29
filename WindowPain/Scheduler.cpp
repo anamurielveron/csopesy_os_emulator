@@ -16,7 +16,7 @@ using std::min;
 Scheduler::Scheduler(const Config& config)
     : config(config),
     memoryManager(config.max_overall_mem, config.min_mem_per_proc, config.max_mem_per_proc, config.mem_per_frame, config.num_cpu),
-    pagingAllocator(config.max_overall_mem, config.mem_per_frame, config.min_mem_per_proc, config.max_mem_per_proc),
+    pagingAllocator(config.max_overall_mem, config.mem_per_frame, config.min_mem_per_proc, config.max_mem_per_proc, config.num_cpu),
     schedulerType(config.scheduler == "rr" ? SchedulerType::RR : SchedulerType::FCFS),
     quantumCycles(config.quantum_cycles),
     numCores(config.num_cpu) {
@@ -48,8 +48,10 @@ void Scheduler::worker(int coreId) {
     while (true) {
         if (finished) {
             if (screenQueue.empty()) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(50)); // Wait briefly before rechecking
-                continue; // Do not exit until explicitly told to stop
+                // Increment idle ticks if the queue is empty
+                updateCpuTicks(true);
+                std::this_thread::sleep_for(std::chrono::milliseconds(50));
+                continue;
             }
         }
 
@@ -57,7 +59,7 @@ void Scheduler::worker(int coreId) {
 
         {
             std::unique_lock<std::mutex> lock(queueMutex);
-            cv.wait(lock, [this] {
+            cv.wait(lock, [this] { 
                 return finished || !screenQueue.empty();
                 });
 
@@ -70,12 +72,17 @@ void Scheduler::worker(int coreId) {
                 screenQueue.pop();
             }
             else {
-                std::this_thread::sleep_for(std::chrono::milliseconds(50)); // Wait before checking again
-                continue; // No screen to process; wait for the next signal.
+                // Increment idle ticks if the queue is empty
+                updateCpuTicks(true);
+                std::this_thread::sleep_for(std::chrono::milliseconds(50));
+                continue;
             }
         }
 
         if (screen) {
+            // Increment active ticks as a process is being handled
+            updateCpuTicks(false);
+
             std::this_thread::sleep_for(std::chrono::milliseconds(10)); // Delay to simulate processing
 
             if (screen->getState() == Screen::State::Finished) {
@@ -137,9 +144,13 @@ void Scheduler::worker(int coreId) {
                     std::this_thread::sleep_for(std::chrono::milliseconds(10)); // Delay for state transition
                 }
                 else {
+                    updateCpuTicks(true); // Core is idle
                     addReadyQueue(*screen);
                     std::this_thread::sleep_for(std::chrono::milliseconds(50)); // Delay to avoid busy loop
                 }
+            }
+            else {
+                updateCpuTicks(true);
             }
 
             // Handle Waiting state
@@ -153,23 +164,20 @@ void Scheduler::worker(int coreId) {
 
                 std::this_thread::sleep_for(std::chrono::milliseconds(20)); // Delay for deallocation
                 addReadyQueue(*screen);
-                continue;
-            }
 
-            // Handle Unexpected States
-            else {
-                std::cerr << "[ERROR] Process " << screen->getName()
-                    << " is in an unknown state!\n";
-                std::this_thread::sleep_for(std::chrono::milliseconds(10)); // Delay to simulate error handling
+                continue;
             }
         }
         else {
             std::cerr << "[ERROR] Null screen pointer encountered.\n";
+            
             std::this_thread::sleep_for(std::chrono::milliseconds(10)); // Delay for null pointer handling
             continue; // Safely skip to the next iteration.
         }
     }
 }
+
+
 
 
 // FCFS: Complete execution of each screen process before moving to another process
@@ -311,4 +319,45 @@ void Scheduler::logQueueState() {
 void Scheduler::finish() {
     finished = true;
     cv.notify_all(); // Notify all threads to finish execution
+}
+
+
+void Scheduler::processSMI() {
+    if (allocatorType == AllocatorType::FlatMemory) {
+        memoryManager.processSMI();
+    }
+    else if (allocatorType == AllocatorType::Paging) {
+        pagingAllocator.processSMI();
+    }
+}
+
+void Scheduler::updateCpuTicks(bool isIdle) {
+    if (allocatorType == AllocatorType::Paging) {
+        if (isIdle) {
+            pagingAllocator.incrementIdleCpuTicks(1);
+        }
+        else {
+            pagingAllocator.incrementActiveCpuTicks(1);
+        }
+        pagingAllocator.incrementTotalCpuTicks(1);
+    }
+    else if (allocatorType == AllocatorType::FlatMemory) {
+        if (isIdle) {
+            memoryManager.incrementIdleCpuTicks(1);
+        }
+        else {
+            memoryManager.incrementActiveCpuTicks(1);
+        }
+        memoryManager.incrementTotalCpuTicks(1);
+    }
+
+}
+
+void Scheduler::VMstat() {
+    if (allocatorType == AllocatorType::Paging) {
+        pagingAllocator.VMstat();
+    }
+    else if (allocatorType == AllocatorType::FlatMemory) {
+        memoryManager.VMstat();
+    }
 }

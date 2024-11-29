@@ -20,6 +20,8 @@ private:
     void schedulerTest();   // N/A
     void schedulerStop();   // N/A
     void reportUtil();      // N/A
+    void processSMI();
+    void VMstat();
     void clear();           // redraws the screen console
     void exitProgram();     // exits the program
 

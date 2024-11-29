@@ -14,6 +14,8 @@ MainMenuConsole::MainMenuConsole(ScreenManager& sm, ConsoleManager& cm)
     commandMap["help"] = [this]() { help(); };
     commandMap["initialize"] = [this]() { initialize(); };
     commandMap["screen"] = [this]() { screen(); };
+    commandMap["process-smi"] = [this]() { processSMI(); };
+    commandMap["vmstat"] = [this]() { VMstat(); };
     commandMapWithArgs["screen -s"] = [this](const String& args) {
         screenManager.screenCreate(args, "screenCreate");
         if (screenManager.currentScreen != "") {
@@ -123,6 +125,14 @@ void MainMenuConsole::schedulerStop() {
 
 void MainMenuConsole::clear() {
     draw();
+}
+
+void MainMenuConsole::processSMI() {
+    screenManager.processSMI();
+}
+
+void MainMenuConsole::VMstat() {
+    screenManager.VMstat();
 }
 
 void MainMenuConsole::exitProgram() {

@@ -369,7 +369,8 @@ void ScreenManager::initialize() {
             config.max_overall_mem,
             config.mem_per_frame,
             config.min_mem_per_proc,
-            config.max_mem_per_proc
+            config.max_mem_per_proc,
+            config.num_cpu
         );
     }
     scheduler = new Scheduler(config);
@@ -385,4 +386,22 @@ void ScreenManager::initialize() {
 
     schedulerThread.detach();
     printInColor("Initialization complete.\n\n", "green");
+}
+
+void ScreenManager::VMstat() {
+    if (!scheduler) {
+        printInColor("Error: Scheduler is not initialized.\n", "red");
+        return;
+    }
+
+    scheduler->VMstat();
+}
+
+void ScreenManager::processSMI() {
+    if (!scheduler) {
+        printInColor("Error: Scheduler is not initialized.\n", "red");
+        return;
+    }
+
+    scheduler->processSMI();
 }

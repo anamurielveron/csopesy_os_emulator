@@ -26,6 +26,8 @@ public:
     void schedulerTest();                            // Method to start the scheduler
     void schedulerStop();
     void initialize();
+    void processSMI();
+    void VMstat();
     void loadConfig(const String& filename);
     std::atomic<bool> testRunning{ false };
     std::atomic<bool> schedulerRunning{ false };
