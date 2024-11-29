@@ -307,6 +307,15 @@ void Scheduler::logQueueState() {
     std::cout << "\n";
 }
 
+void Scheduler::processSMI() {
+    if (allocatorType == AllocatorType::FlatMemory) {
+        //memoryManager.processSMI();
+    }
+    else if (allocatorType == AllocatorType::Paging) {
+        pagingAllocator.processSMI();
+    }
+}
+
 
 void Scheduler::finish() {
     finished = true;

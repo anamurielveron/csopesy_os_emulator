@@ -23,6 +23,9 @@ using std::min;
 
 ScreenManager::ScreenManager(ConsoleManager& cm) : consoleManager(cm), currentScreen(""), scheduler(nullptr), schedulerRunning(false), testRunning(false) {}
 
+
+
+
 void ScreenManager::screenCreate(const String& name, const String &type) {
     if (screens.find(name) != screens.end()) {
         printInColor("Screen already exists with this name.\n\n", "red");
@@ -354,23 +357,23 @@ void ScreenManager::initialize() {
     std::cout << "Minimum memory per process: " << config.min_mem_per_proc << "\n";
 
     if (config.max_overall_mem == config.mem_per_frame) {
-        printInColor("Using flat memory allocation (MemoryManager).\n", "cyan");
-        MemoryManager(
+        memoryManager = std::make_unique<MemoryManager>(
             config.max_overall_mem,
             config.min_mem_per_proc,
             config.max_mem_per_proc,
             config.mem_per_frame,
             config.num_cpu
         );
+        pagingAllocator.reset();
     }
     else {
-        printInColor("Using paging allocation (PagingAllocator).\n", "cyan");
-        PagingAllocator(
+        pagingAllocator = std::make_unique<PagingAllocator>(
             config.max_overall_mem,
             config.mem_per_frame,
             config.min_mem_per_proc,
             config.max_mem_per_proc
         );
+        memoryManager.reset();
     }
     scheduler = new Scheduler(config);
 
@@ -386,3 +389,26 @@ void ScreenManager::initialize() {
     schedulerThread.detach();
     printInColor("Initialization complete.\n\n", "green");
 }
+
+void ScreenManager::processSMI() {
+
+    String Type = "";
+
+    if (scheduler->getTypeString() == "FlatMemory")
+        scheduler->processSMI
+}
+
+
+//void ScreenManager::vmstat() {
+//    std::cout << "----- VMSTAT -----\n";
+//    std::cout << config.max_overall_mem << " K total memory\n";
+//    std::cout << usedMemory << " K used memory\n";
+//    std::cout << (pagingallocator->getFreeframes()) * config.mem_per_frame << " K free memory\n";
+//    std::cout << totalSwap << " K total swap\n";
+//    std::cout << freeSwap << " K free swap\n";
+//    std::cout << idleCpuTicks << " idle cpu ticks\n";
+//    std::cout << systemCpuTicks << " system cpu ticks\n";
+//    std::cout << interrupts << " interrupts\n";
+//    std::cout << bootTime << " boot time\n";
+//    std::cout << "-------------------------------------------------------\n";
+//}

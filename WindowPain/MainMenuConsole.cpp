@@ -8,12 +8,16 @@
 #include <iostream>
 #include <random>
 
+
+
 MainMenuConsole::MainMenuConsole(ScreenManager& sm, ConsoleManager& cm)
-    : screenManager(sm), consoleManager(cm) {
+    : screenManager(sm), consoleManager(cm){
     // initializes the command map
     commandMap["help"] = [this]() { help(); };
     commandMap["initialize"] = [this]() { initialize(); };
     commandMap["screen"] = [this]() { screen(); };
+    commandMap["process-smi"] = [this]() { processSMI(); };
+    //commandMap["vmstat"] = [this]() { vmstat(); };
     commandMapWithArgs["screen -s"] = [this](const String& args) {
         screenManager.screenCreate(args, "screenCreate");
         if (screenManager.currentScreen != "") {
@@ -79,6 +83,10 @@ void MainMenuConsole::help() {
     std::cout << "\n";
     printInColor("screen", "green");
     std::cout << "\n";
+    printInColor("process-smi", "green");
+    std::cout << "\n";
+    printInColor("vmstat", "green");
+    std::cout << "\n";
     printInColor("scheduler-test", "green");
     std::cout << "\n";
     printInColor("scheduler-stop", "green");
@@ -119,6 +127,10 @@ void MainMenuConsole::schedulerTest() {
 
 void MainMenuConsole::schedulerStop() {
     screenManager.schedulerStop();
+}
+
+void MainMenuConsole::processSMI() {
+    screenManager.processSMI();
 }
 
 void MainMenuConsole::clear() {

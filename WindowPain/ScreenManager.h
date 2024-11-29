@@ -15,8 +15,11 @@ class ScreenManager {
 private:
     ConsoleManager& consoleManager;             // reference to the console manager
     Scheduler* scheduler;                            // pointer to Scheduler
+    std::unique_ptr<MemoryManager> memoryManager;
+    std::unique_ptr<PagingAllocator> pagingAllocator;
 
 public:
+
     std::unordered_map<String, Screen> screens; // list of screens
     String currentScreen;                  // current screen displayed
     ScreenManager(ConsoleManager& cm);
@@ -26,6 +29,7 @@ public:
     void schedulerTest();                            // Method to start the scheduler
     void schedulerStop();
     void initialize();
+    void processSMI();
     void loadConfig(const String& filename);
     std::atomic<bool> testRunning{ false };
     std::atomic<bool> schedulerRunning{ false };

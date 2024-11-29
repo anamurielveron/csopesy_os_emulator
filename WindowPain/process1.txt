@@ -1,0 +1,8 @@
+Core 1 processed line 1 of process process1
+Core 1 processed line 2 of process process1
+Core 1 processed line 3 of process process1
+Core 1 processed line 4 of process process1
+Core 1 processed line 5 of process process1
+Core 1 processed line 6 of process process1
+Core 1 processed line 7 of process process1
+Core 1 processed line 8 of process process1

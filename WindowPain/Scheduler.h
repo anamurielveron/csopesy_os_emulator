@@ -47,6 +47,13 @@ public:
     void finish();
     void logQueueState();
     AllocatorType getAllocatorType() const;
+    String getTypeString() const {
+        switch (allocatorType) {
+        case AllocatorType::FlatMemory: return "FlatMemory";
+        case AllocatorType::Paging: return "Paging";
+        default: return "Unknown";
+        };
+    void processSMI();
 
 };
 
