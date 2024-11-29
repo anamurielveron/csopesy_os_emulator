@@ -71,17 +71,15 @@ void Scheduler::worker(int coreId) {
                 screen = screenQueue.front();
                 screenQueue.pop();
             }
-            else {
+            if (screenQueue.empty()) {
                 // Increment idle ticks if the queue is empty
                 updateCpuTicks(true);
-                std::this_thread::sleep_for(std::chrono::milliseconds(50));
-                continue;
             }
         }
 
         if (screen) {
             // Increment active ticks as a process is being handled
-            updateCpuTicks(false);
+            
 
             std::this_thread::sleep_for(std::chrono::milliseconds(10)); // Delay to simulate processing
 
@@ -104,7 +102,7 @@ void Scheduler::worker(int coreId) {
                 if (allocated) {
                     screen->setRunningState();
                     std::this_thread::sleep_for(std::chrono::milliseconds(10)); // Delay for memory allocation
-
+                    updateCpuTicks(false);
                     // Execute one quantum slice
                     if (schedulerType == SchedulerType::FCFS) {
                         executeProcessFCFS(screen, coreId);
@@ -334,21 +332,21 @@ void Scheduler::processSMI() {
 void Scheduler::updateCpuTicks(bool isIdle) {
     if (allocatorType == AllocatorType::Paging) {
         if (isIdle) {
-            pagingAllocator.incrementIdleCpuTicks(1);
+            pagingAllocator.incrementIdleCpuTicks(quantumCycles);
         }
         else {
-            pagingAllocator.incrementActiveCpuTicks(1);
+            pagingAllocator.incrementActiveCpuTicks(quantumCycles);
         }
-        pagingAllocator.incrementTotalCpuTicks(1);
+        pagingAllocator.incrementTotalCpuTicks(quantumCycles);
     }
     else if (allocatorType == AllocatorType::FlatMemory) {
         if (isIdle) {
-            memoryManager.incrementIdleCpuTicks(1);
+            memoryManager.incrementIdleCpuTicks(quantumCycles);
         }
         else {
-            memoryManager.incrementActiveCpuTicks(1);
+            memoryManager.incrementActiveCpuTicks(quantumCycles);
         }
-        memoryManager.incrementTotalCpuTicks(1);
+        memoryManager.incrementTotalCpuTicks(quantumCycles);
     }
 
 }
